@@ -11,6 +11,17 @@ const { randomUUID } = require('crypto');
 const DISCOGS_TOKEN = process.env.DISCOGS_TOKEN;
 const DISCOGS_UA = 'PlaylistDownloader/0.2 (+local)';
 
+function discogsError(r) {
+  if (r.status === 429) {
+    const retry = parseInt(r.headers.get('retry-after') || '60', 10);
+    return new Error(`Discogs limiet bereikt. Probeer over ~${retry}s opnieuw.`);
+  }
+  if (r.status === 401 || r.status === 403) {
+    return new Error('Discogs-token ongeldig of geweigerd. Check DISCOGS_TOKEN in .env.');
+  }
+  return new Error(`Discogs gaf HTTP ${r.status}`);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -165,7 +176,7 @@ app.post('/api/album-search', async (req, res) => {
     url.searchParams.set('token', DISCOGS_TOKEN);
 
     const r = await fetch(url, { headers: { 'User-Agent': DISCOGS_UA } });
-    if (!r.ok) throw new Error(`Discogs gaf HTTP ${r.status}`);
+    if (!r.ok) throw discogsError(r);
     const data = await r.json();
 
     const albums = (data.results || []).slice(0, 5).map((rel) => ({
@@ -198,7 +209,7 @@ app.post('/api/album-tracks', async (req, res) => {
   try {
     const url = `https://api.discogs.com/masters/${encodeURIComponent(albumId)}?token=${encodeURIComponent(DISCOGS_TOKEN)}`;
     const r = await fetch(url, { headers: { 'User-Agent': DISCOGS_UA } });
-    if (!r.ok) throw new Error(`Discogs gaf HTTP ${r.status}`);
+    if (!r.ok) throw discogsError(r);
     const data = await r.json();
 
     const mainArtist = (data.artists && data.artists[0]?.name) || '';
