@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const ytSearch = require('yt-search');
 const ytDlp = require('yt-dlp-exec');
@@ -6,6 +7,9 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { randomUUID } = require('crypto');
+
+const DISCOGS_TOKEN = process.env.DISCOGS_TOKEN;
+const DISCOGS_UA = 'PlaylistDownloader/0.2 (+local)';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -140,6 +144,90 @@ function formatDuration(secs) {
   const s = Math.floor(secs % 60);
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
+
+// Discogs — search master releases by query
+app.post('/api/album-search', async (req, res) => {
+  if (!DISCOGS_TOKEN) {
+    return res.status(503).json({
+      error: 'Discogs is niet geconfigureerd. Zet DISCOGS_TOKEN in .env (zie HANDLEIDING).',
+    });
+  }
+  const { query } = req.body;
+  if (!query || typeof query !== 'string') {
+    return res.status(400).json({ error: 'Geen album-naam opgegeven' });
+  }
+
+  try {
+    const url = new URL('https://api.discogs.com/database/search');
+    url.searchParams.set('q', query);
+    url.searchParams.set('type', 'master');
+    url.searchParams.set('per_page', '5');
+    url.searchParams.set('token', DISCOGS_TOKEN);
+
+    const r = await fetch(url, { headers: { 'User-Agent': DISCOGS_UA } });
+    if (!r.ok) throw new Error(`Discogs gaf HTTP ${r.status}`);
+    const data = await r.json();
+
+    const albums = (data.results || []).slice(0, 5).map((rel) => ({
+      id: rel.master_id || rel.id,
+      title: rel.title,
+      year: rel.year || null,
+      thumbnail: rel.cover_image || rel.thumb || null,
+      format: Array.isArray(rel.format) ? rel.format.join(', ') : null,
+    }));
+
+    if (!albums.length) {
+      return res.status(404).json({ error: 'Geen album gevonden op Discogs' });
+    }
+
+    res.json({ albums });
+  } catch (err) {
+    console.error('Discogs-zoek fout:', err);
+    res.status(500).json({ error: err.message || 'Onbekende fout' });
+  }
+});
+
+// Discogs — fetch tracklist for a master release
+app.post('/api/album-tracks', async (req, res) => {
+  if (!DISCOGS_TOKEN) {
+    return res.status(503).json({ error: 'Discogs is niet geconfigureerd' });
+  }
+  const { albumId } = req.body;
+  if (!albumId) return res.status(400).json({ error: 'albumId ontbreekt' });
+
+  try {
+    const url = `https://api.discogs.com/masters/${encodeURIComponent(albumId)}?token=${encodeURIComponent(DISCOGS_TOKEN)}`;
+    const r = await fetch(url, { headers: { 'User-Agent': DISCOGS_UA } });
+    if (!r.ok) throw new Error(`Discogs gaf HTTP ${r.status}`);
+    const data = await r.json();
+
+    const mainArtist = (data.artists && data.artists[0]?.name) || '';
+    // Strip Discogs' disambiguation suffix like "Volbeat (2)" → "Volbeat"
+    const cleanArtist = mainArtist.replace(/\s*\(\d+\)\s*$/, '').trim();
+
+    const tracks = (data.tracklist || [])
+      .filter((t) => t.type_ === 'track' || !t.type_)
+      .filter((t) => t.title)
+      .map((t) => ({
+        artist: (t.artists && t.artists[0]?.name?.replace(/\s*\(\d+\)\s*$/, '').trim()) || cleanArtist,
+        title: t.title,
+        position: t.position || '',
+        duration: t.duration || null,
+      }));
+
+    if (!tracks.length) {
+      return res.status(404).json({ error: 'Geen tracks gevonden voor dit album' });
+    }
+
+    res.json({
+      album: { title: data.title, artist: cleanArtist, year: data.year || null },
+      tracks,
+    });
+  } catch (err) {
+    console.error('Discogs-tracks fout:', err);
+    res.status(500).json({ error: err.message || 'Onbekende fout' });
+  }
+});
 
 // In-memory job tracking
 const jobs = new Map();

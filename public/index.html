@@ -49,11 +49,34 @@ The Weeknd - Blinding Lights"
       </div>
     </section>
 
+    <div class="section-divider"><span>of</span></div>
+
+    <section class="input-section">
+      <label for="albumInput">
+        Naam van een album &mdash; tracklist wordt opgehaald via Discogs en automatisch gezocht
+      </label>
+      <div class="actions">
+        <input
+          id="albumInput"
+          type="text"
+          class="channel-input"
+          placeholder="bijv. Volbeat - Rewind, Replay, Rebound"
+          autocomplete="off"
+        />
+        <button id="albumSearchBtn" class="btn btn-primary">&#128269; Zoek album</button>
+      </div>
+    </section>
+
     <div id="statusBar" class="status-bar" hidden></div>
 
     <section id="channelPicker" class="channel-picker-section" hidden>
       <h2 class="picker-title">Kies een kanaal</h2>
       <div id="channelPickerList"></div>
+    </section>
+
+    <section id="albumPicker" class="channel-picker-section" hidden>
+      <h2 class="picker-title">Kies een album</h2>
+      <div id="albumPickerList"></div>
     </section>
 
     <section id="results" class="results-section" hidden>

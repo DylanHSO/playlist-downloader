@@ -11,13 +11,24 @@ const channelInput = document.getElementById('channelInput');
 const channelSearchBtn = document.getElementById('channelSearchBtn');
 const channelPicker = document.getElementById('channelPicker');
 const channelPickerList = document.getElementById('channelPickerList');
+const albumInput = document.getElementById('albumInput');
+const albumSearchBtn = document.getElementById('albumSearchBtn');
+const albumPicker = document.getElementById('albumPicker');
+const albumPickerList = document.getElementById('albumPickerList');
 const selectAllCheckbox = document.getElementById('selectAllCheckbox');
 
 searchBtn.addEventListener('click', searchSongs);
 downloadAllBtn.addEventListener('click', downloadSelected);
 channelSearchBtn.addEventListener('click', searchChannels);
 channelInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchChannels(); });
+albumSearchBtn.addEventListener('click', searchAlbums);
+albumInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchAlbums(); });
 selectAllCheckbox.addEventListener('change', toggleSelectAll);
+
+albumPickerList.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-album-id]');
+  if (btn) pickAlbum(btn.dataset.albumId);
+});
 
 resultsList.addEventListener('change', (e) => {
   if (e.target.classList.contains('result-checkbox')) {
@@ -43,6 +54,7 @@ async function searchSongs() {
   setStatus(`Zoeken naar ${queries.length} nummer${queries.length !== 1 ? 's' : ''}...`);
   resultsSection.hidden = true;
   channelPicker.hidden = true;
+  albumPicker.hidden = true;
   resultsBar.hidden = true;
 
   try {
@@ -70,6 +82,7 @@ async function searchChannels() {
   channelSearchBtn.disabled = true;
   channelSearchBtn.textContent = '⏳ Zoeken...';
   channelPicker.hidden = true;
+  albumPicker.hidden = true;
   resultsSection.hidden = true;
   resultsBar.hidden = true;
   setStatus(`Zoeken naar kanaal "${name}"...`);
@@ -110,6 +123,82 @@ function renderChannelPicker(channels) {
     </div>
   `).join('');
   channelPicker.hidden = false;
+}
+
+async function searchAlbums() {
+  const query = albumInput.value.trim();
+  if (!query) return;
+
+  albumSearchBtn.disabled = true;
+  albumSearchBtn.textContent = '⏳ Zoeken...';
+  albumPicker.hidden = true;
+  channelPicker.hidden = true;
+  resultsSection.hidden = true;
+  resultsBar.hidden = true;
+  setStatus(`Zoeken naar album "${query}" op Discogs...`);
+
+  try {
+    const res = await fetch('/api/album-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || `HTTP ${res.status}`);
+    }
+    const { albums } = await res.json();
+    renderAlbumPicker(albums);
+    clearStatus();
+  } catch (err) {
+    setStatus(`Fout bij album zoeken: ${err.message}`);
+  } finally {
+    albumSearchBtn.disabled = false;
+    albumSearchBtn.textContent = '🔍 Zoek album';
+  }
+}
+
+function renderAlbumPicker(albums) {
+  albumPickerList.innerHTML = albums.map((a) => `
+    <div class="channel-card">
+      ${a.thumbnail ? `<img class="album-thumb" src="${_esc(a.thumbnail)}" alt="" loading="lazy">` : '<div class="album-thumb channel-thumb-placeholder">💿</div>'}
+      <div class="channel-info">
+        <div class="channel-name">${_esc(a.title)}</div>
+        <div class="channel-meta">
+          ${a.year ? _esc(String(a.year)) : ''}${a.year && a.format ? ' &middot; ' : ''}${a.format ? _esc(a.format) : ''}
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" data-album-id="${_esc(String(a.id))}">Kies</button>
+    </div>
+  `).join('');
+  albumPicker.hidden = false;
+}
+
+async function pickAlbum(albumId) {
+  albumPicker.hidden = true;
+  setStatus('Tracklist ophalen van Discogs...');
+
+  try {
+    const res = await fetch('/api/album-tracks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ albumId }),
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || `HTTP ${res.status}`);
+    }
+    const { tracks } = await res.json();
+
+    const lines = tracks
+      .map(t => `${t.artist} - ${t.title}`)
+      .join('\n');
+    songList.value = lines;
+    clearStatus();
+    await searchSongs();
+  } catch (err) {
+    setStatus(`Fout bij ophalen tracklist: ${err.message}`);
+  }
 }
 
 async function pickChannel(channelUrl) {
