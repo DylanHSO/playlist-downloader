@@ -10,6 +10,22 @@ const { randomUUID } = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Basic Auth — only active when APP_PASSWORD is set (so local dev stays open)
+const APP_PASSWORD = process.env.APP_PASSWORD;
+const APP_USER = process.env.APP_USER || 'collega';
+
+if (APP_PASSWORD) {
+  app.use((req, res, next) => {
+    const auth = req.headers.authorization;
+    if (auth?.startsWith('Basic ')) {
+      const [user, pass] = Buffer.from(auth.slice(6), 'base64').toString().split(':');
+      if (user === APP_USER && pass === APP_PASSWORD) return next();
+    }
+    res.set('WWW-Authenticate', 'Basic realm="Playlist Downloader"');
+    res.status(401).send('Authenticatie vereist');
+  });
+}
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
