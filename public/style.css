@@ -119,6 +119,158 @@ textarea:focus {
 .btn-done { background: #1a8a3c !important; color: white; }
 .btn-error { background: #c0392b !important; color: white; opacity: 1 !important; }
 
+/* Channel input field */
+.channel-input {
+  flex: 1;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s;
+  color: #333;
+  font-family: inherit;
+}
+
+.channel-input:focus {
+  border-color: #cc0000;
+}
+
+/* Section divider with "of" label */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 4px;
+  color: #aaa;
+  font-size: 0.78rem;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #ddd;
+}
+
+.section-divider span {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Channel picker */
+.channel-picker-section {
+  margin-bottom: 16px;
+}
+
+.picker-title {
+  font-size: 0.95rem;
+  color: #444;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.channel-card {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.channel-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #eee;
+}
+
+.channel-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+}
+
+.channel-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.channel-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.channel-meta {
+  font-size: 0.75rem;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.channel-desc {
+  font-size: 0.75rem;
+  color: #aaa;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Checkbox in result cards */
+.result-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 4px;
+  flex-shrink: 0;
+  accent-color: #cc0000;
+  cursor: pointer;
+}
+
+/* Results action bar (sticky download button) */
+.results-bar {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  background: rgba(242, 242, 242, 0.92);
+  backdrop-filter: blur(6px);
+  padding: 6px 0 8px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.results-bar .btn {
+  flex: 1;
+}
+
+.select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #444;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.select-all-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #cc0000;
+  cursor: pointer;
+}
+
 /* Status bar */
 .status-bar {
   background: #fff8e1;

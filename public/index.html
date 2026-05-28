@@ -28,13 +28,42 @@ The Weeknd - Blinding Lights"
       ></textarea>
       <div class="actions">
         <button id="searchBtn" class="btn btn-primary">&#128269; Zoek nummers</button>
-        <button id="downloadAllBtn" class="btn btn-success" hidden>&#8659; Download alles</button>
+      </div>
+    </section>
+
+    <div class="section-divider"><span>of</span></div>
+
+    <section class="input-section">
+      <label for="channelInput">
+        Naam van een YouTube-kanaal &mdash; download alle video's van het kanaal
+      </label>
+      <div class="actions">
+        <input
+          id="channelInput"
+          type="text"
+          class="channel-input"
+          placeholder="bijv. Volbeat - Topic"
+          autocomplete="off"
+        />
+        <button id="channelSearchBtn" class="btn btn-primary">&#128269; Zoek kanaal</button>
       </div>
     </section>
 
     <div id="statusBar" class="status-bar" hidden></div>
 
+    <section id="channelPicker" class="channel-picker-section" hidden>
+      <h2 class="picker-title">Kies een kanaal</h2>
+      <div id="channelPickerList"></div>
+    </section>
+
     <section id="results" class="results-section" hidden>
+      <div id="resultsBar" class="results-bar" hidden>
+        <label class="select-all-label">
+          <input type="checkbox" id="selectAllCheckbox" checked>
+          <span>Alles</span>
+        </label>
+        <button id="downloadAllBtn" class="btn btn-success">&#8659; Download alles</button>
+      </div>
       <div id="resultsList"></div>
     </section>
 

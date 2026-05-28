@@ -61,6 +61,86 @@ app.post('/api/search', async (req, res) => {
   res.json(results);
 });
 
+// Search YouTube for channels matching a name (top 3)
+app.post('/api/channel-search', async (req, res) => {
+  const { channelName } = req.body;
+  if (!channelName || typeof channelName !== 'string') {
+    return res.status(400).json({ error: 'Geen kanaal-naam opgegeven' });
+  }
+
+  try {
+    const r = await ytSearch(channelName);
+    const positive = (n) => (typeof n === 'number' && n > 0 ? n : null);
+    const channels = (r.channels || []).slice(0, 3).map((c) => ({
+      name: c.name,
+      url: c.url,
+      subscribers: positive(c.subCount) || c.subscribers || null,
+      videoCount: positive(c.videoCount),
+      thumbnail: c.image || c.thumbnail || null,
+      description: c.description || null,
+    }));
+
+    if (!channels.length) {
+      return res.status(404).json({ error: 'Geen kanaal gevonden' });
+    }
+
+    res.json({ channels });
+  } catch (err) {
+    console.error('Kanaal-zoek fout:', err);
+    res.status(500).json({ error: err.message || 'Onbekende fout' });
+  }
+});
+
+// List all videos from a channel
+app.post('/api/channel-videos', async (req, res) => {
+  const { channelUrl } = req.body;
+  if (!channelUrl || typeof channelUrl !== 'string') {
+    return res.status(400).json({ error: 'Geen kanaal-url opgegeven' });
+  }
+
+  try {
+    // yt-dlp-exec auto-parses JSON when stdout starts with `{`, so this is
+    // already the parsed channel info — no JSON.parse needed.
+    const data = await ytDlp(channelUrl, {
+      flatPlaylist: true,
+      dumpSingleJson: true,
+      skipDownload: true,
+      playlistEnd: 100,
+    });
+
+    if (typeof data !== 'object' || data === null) {
+      throw new Error('Onverwacht antwoord van yt-dlp');
+    }
+    const entries = data.entries || [];
+    const channelName = data.channel || data.uploader || '';
+
+    const videos = entries
+      .filter((e) => e.id)
+      .map((e) => ({
+        found: true,
+        videoId: e.id,
+        title: e.title || 'Onbekende titel',
+        url: `https://www.youtube.com/watch?v=${e.id}`,
+        duration: formatDuration(e.duration),
+        thumbnail: `https://i.ytimg.com/vi/${e.id}/default.jpg`,
+        channel: channelName,
+        source: channelName ? `Uit kanaal: ${channelName}` : null,
+      }));
+
+    res.json({ videos, channel: { name: channelName, total: videos.length } });
+  } catch (err) {
+    console.error('Kanaal-video-fout:', err);
+    res.status(500).json({ error: err.shortMessage || err.message || 'Onbekende fout' });
+  }
+});
+
+function formatDuration(secs) {
+  if (typeof secs !== 'number' || !isFinite(secs) || secs <= 0) return null;
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 // In-memory job tracking
 const jobs = new Map();
 
