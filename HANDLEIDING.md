@@ -54,6 +54,12 @@ Als je de app al draait, sluit dan PowerShell en start opnieuw met `npm start` �
 
 ---
 
+## Bij updates van de app
+
+Als Dylan een nieuwe versie pusht en je downloadt een nieuwe ZIP: pak 'm uit, en draai **altijd opnieuw `npm install`** voordat je `npm start` doet. Zo worden eventuele nieuwe modules binnengehaald.
+
+---
+
 ## App starten en gebruiken
 
 ### Starten
@@ -91,6 +97,7 @@ Druk **Ctrl+C** in het PowerShell-venster, of sluit het venster gewoon. De app i
 |---|---|
 | `npm is not recognized` | Node.js niet (correct) geïnstalleerd. Herstart de laptop na installatie. |
 | `Cannot GET /api/file/...` in de browser | Een oude versie van de app draait nog. Sluit PowerShell, open opnieuw, `npm start`. |
+| `Cannot find module 'dotenv'` (of een andere module) | Je hebt een nieuwere versie van de app gedownload maar `npm install` nog niet opnieuw gedraaid. Draai `npm install` opnieuw in de map, dan `npm start`. |
 | Browser zegt "Site can't be reached" | App draait niet meer — start opnieuw met `npm start`. |
 | YouTube vindt een nummer niet | Probeer een specifiekere zoekterm, bijv. `Artiest - Nummer (Official Audio)`. |
 | "Sign in to confirm you're not a bot" | YouTube vermoedt een bot. Stuur Dylan een berichtje, dan helpt 'ie met een cookie-bestand. |
