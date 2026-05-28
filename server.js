@@ -106,45 +106,68 @@ app.post('/api/channel-search', async (req, res) => {
   }
 });
 
-// List all videos from a channel
+// List all videos from a YouTube channel or playlist URL via yt-dlp flat-playlist.
+async function enumerateYouTubeUrl(url) {
+  // yt-dlp-exec auto-parses JSON when stdout starts with `{`.
+  const data = await ytDlp(url, {
+    flatPlaylist: true,
+    dumpSingleJson: true,
+    skipDownload: true,
+  });
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('Onverwacht antwoord van yt-dlp');
+  }
+  return data;
+}
+
+function mapEntriesToVideos(entries, sourceName, sourceLabel) {
+  return (entries || [])
+    .filter((e) => e.id)
+    .map((e) => ({
+      found: true,
+      videoId: e.id,
+      title: e.title || 'Onbekende titel',
+      url: `https://www.youtube.com/watch?v=${e.id}`,
+      duration: formatDuration(e.duration),
+      thumbnail: `https://i.ytimg.com/vi/${e.id}/default.jpg`,
+      channel: sourceName,
+      source: sourceName ? `${sourceLabel}: ${sourceName}` : null,
+    }));
+}
+
+// List videos from a channel
 app.post('/api/channel-videos', async (req, res) => {
   const { channelUrl } = req.body;
   if (!channelUrl || typeof channelUrl !== 'string') {
     return res.status(400).json({ error: 'Geen kanaal-url opgegeven' });
   }
-
   try {
-    // yt-dlp-exec auto-parses JSON when stdout starts with `{`, so this is
-    // already the parsed channel info — no JSON.parse needed.
-    const data = await ytDlp(channelUrl, {
-      flatPlaylist: true,
-      dumpSingleJson: true,
-      skipDownload: true,
-      playlistEnd: 100,
-    });
-
-    if (typeof data !== 'object' || data === null) {
-      throw new Error('Onverwacht antwoord van yt-dlp');
-    }
-    const entries = data.entries || [];
-    const channelName = data.channel || data.uploader || '';
-
-    const videos = entries
-      .filter((e) => e.id)
-      .map((e) => ({
-        found: true,
-        videoId: e.id,
-        title: e.title || 'Onbekende titel',
-        url: `https://www.youtube.com/watch?v=${e.id}`,
-        duration: formatDuration(e.duration),
-        thumbnail: `https://i.ytimg.com/vi/${e.id}/default.jpg`,
-        channel: channelName,
-        source: channelName ? `Uit kanaal: ${channelName}` : null,
-      }));
-
-    res.json({ videos, channel: { name: channelName, total: videos.length } });
+    const data = await enumerateYouTubeUrl(channelUrl);
+    const sourceName = data.channel || data.uploader || '';
+    const videos = mapEntriesToVideos(data.entries, sourceName, 'Uit kanaal');
+    res.json({ videos, channel: { name: sourceName, total: videos.length } });
   } catch (err) {
     console.error('Kanaal-video-fout:', err);
+    res.status(500).json({ error: err.shortMessage || err.message || 'Onbekende fout' });
+  }
+});
+
+// List videos from a playlist URL
+app.post('/api/playlist-videos', async (req, res) => {
+  const { url } = req.body;
+  if (!url || typeof url !== 'string') {
+    return res.status(400).json({ error: 'Geen playlist-url opgegeven' });
+  }
+  try {
+    const data = await enumerateYouTubeUrl(url);
+    const sourceName = data.title || data.uploader || '';
+    const videos = mapEntriesToVideos(data.entries, sourceName, 'Uit playlist');
+    if (!videos.length) {
+      return res.status(404).json({ error: "Geen video's gevonden in deze URL" });
+    }
+    res.json({ videos, playlist: { name: sourceName, total: videos.length } });
+  } catch (err) {
+    console.error('Playlist-video-fout:', err);
     res.status(500).json({ error: err.shortMessage || err.message || 'Onbekende fout' });
   }
 });

@@ -31,6 +31,7 @@
       <button class="tab tab-active" data-tab="songs" role="tab">&#127925; Songs</button>
       <button class="tab" data-tab="channel" role="tab">&#128250; Kanaal</button>
       <button class="tab" data-tab="album" role="tab">&#128191; Album</button>
+      <button class="tab" data-tab="playlist" role="tab">&#128203; Playlist</button>
     </nav>
 
     <div id="tab-songs" class="tab-panel tab-panel-active">
@@ -84,6 +85,24 @@ The Weeknd - Blinding Lights"
             autocomplete="off"
           />
           <button id="albumSearchBtn" class="btn btn-primary">&#128269; Zoek album</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="tab-playlist" class="tab-panel">
+      <section class="input-section">
+        <label for="playlistInput">
+          URL van een YouTube-playlist &mdash; download alle nummers eruit
+        </label>
+        <div class="actions">
+          <input
+            id="playlistInput"
+            type="text"
+            class="channel-input"
+            placeholder="https://www.youtube.com/playlist?list=..."
+            autocomplete="off"
+          />
+          <button id="playlistSearchBtn" class="btn btn-primary">&#128203; Haal playlist op</button>
         </div>
       </section>
     </div>

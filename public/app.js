@@ -51,6 +51,8 @@ const albumInput = document.getElementById('albumInput');
 const albumSearchBtn = document.getElementById('albumSearchBtn');
 const albumPicker = document.getElementById('albumPicker');
 const albumPickerList = document.getElementById('albumPickerList');
+const playlistInput = document.getElementById('playlistInput');
+const playlistSearchBtn = document.getElementById('playlistSearchBtn');
 const selectAllCheckbox = document.getElementById('selectAllCheckbox');
 
 searchBtn.addEventListener('click', searchSongs);
@@ -59,6 +61,8 @@ channelSearchBtn.addEventListener('click', searchChannels);
 channelInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchChannels(); });
 albumSearchBtn.addEventListener('click', searchAlbums);
 albumInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchAlbums(); });
+playlistSearchBtn.addEventListener('click', loadPlaylist);
+playlistInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadPlaylist(); });
 selectAllCheckbox.addEventListener('change', toggleSelectAll);
 
 albumPickerList.addEventListener('click', (e) => {
@@ -159,6 +163,45 @@ function renderChannelPicker(channels) {
     </div>
   `).join('');
   channelPicker.hidden = false;
+}
+
+async function loadPlaylist() {
+  const url = playlistInput.value.trim();
+  if (!url) return;
+
+  if (!/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(url)) {
+    setStatus('Geen geldige YouTube-URL. Verwacht: https://www.youtube.com/playlist?list=...');
+    return;
+  }
+
+  playlistSearchBtn.disabled = true;
+  playlistSearchBtn.textContent = '⏳ Ophalen...';
+  resultsSection.hidden = true;
+  resultsBar.hidden = true;
+  channelPicker.hidden = true;
+  albumPicker.hidden = true;
+  setStatus("Video's worden opgehaald van de playlist — dit kan even duren bij grote playlists...");
+
+  try {
+    const res = await fetch('/api/playlist-videos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    results = data.videos;
+    renderResults(results);
+    setStatus(`${results.length} video's gevonden. Vink uit wat je niet wil downloaden.`);
+  } catch (err) {
+    setStatus(`Fout bij ophalen playlist: ${err.message}`);
+  } finally {
+    playlistSearchBtn.disabled = false;
+    playlistSearchBtn.textContent = '📋 Haal playlist op';
+  }
 }
 
 async function searchAlbums() {
