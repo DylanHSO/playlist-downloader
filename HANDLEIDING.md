@@ -17,14 +17,29 @@ Een Windows-laptop met internet. De installatie regelt verder alles zelf (ook de
 3. Open het gedownloade `.msi`-bestand en klik telkens "Next" tot 'ie klaar is. Alle standaardinstellingen kunnen zo blijven.
 4. **Herstart je laptop** na de installatie (anders herkent Windows `npm` nog niet)
 
-### Stap 2 — De app downloaden
+### Stap 2 — Python installeren
+
+Een van de modules in de app (`yt-dlp-exec`) controleert tijdens de installatie of Python aanwezig is. Daarom moet je Python ook installeren.
+
+**Makkelijkste manier (via Microsoft Store):**
+1. Open Microsoft Store
+2. Zoek op **"Python"** → kies de nieuwste versie (3.12 of 3.13) → klik **Installeren**
+3. Klaar — Python staat automatisch in je PATH
+
+**Alternatief (via python.org):**
+1. Ga naar **https://www.python.org/downloads/**
+2. Klik **"Download Python 3.x"**
+3. Open het installer-bestand en **vink belangrijk: "Add python.exe to PATH" aan** op het eerste scherm
+4. Klik door tot 'ie klaar is
+
+### Stap 3 — De app downloaden
 
 1. Ga naar **https://github.com/DylanHSO/playlist-downloader**
 2. Klik op de groene knop **`<> Code`**
 3. Klik **"Download ZIP"**
 4. Pak de ZIP uit op een handige plek, bijv. `C:\Users\<jouwnaam>\playlist-downloader`
 
-### Stap 3 — Eenmalig benodigdheden installeren
+### Stap 4 — Eenmalig benodigdheden installeren
 
 1. Open de uitgepakte map in Verkenner
 2. Klik bovenaan in de **adresbalk** (waar het pad staat), typ `powershell` en druk **Enter** → er opent een blauw terminal-venster
@@ -34,7 +49,7 @@ Een Windows-laptop met internet. De installatie regelt verder alles zelf (ook de
    ```
    Druk Enter en wacht 1-2 minuten. De terminal downloadt alle benodigdheden. Klaar als je weer een lege regel ziet met je map-pad.
 
-### Stap 4 — Discogs-token aanmaken (alleen nodig voor de "album"-functie)
+### Stap 5 — Discogs-token aanmaken (alleen nodig voor de "album"-functie)
 
 Voor het ophalen van een tracklist via een album-naam gebruikt de app de Discogs API. Dat vereist een gratis token op naam van jezelf.
 
@@ -101,6 +116,7 @@ Druk **Ctrl+C** in het PowerShell-venster, of sluit het venster gewoon. De app i
 | Browser zegt "Site can't be reached" | App draait niet meer — start opnieuw met `npm start`. |
 | YouTube vindt een nummer niet | Probeer een specifiekere zoekterm, bijv. `Artiest - Nummer (Official Audio)`. |
 | "Sign in to confirm you're not a bot" | YouTube vermoedt een bot. Stuur Dylan een berichtje, dan helpt 'ie met een cookie-bestand. |
-| "Discogs is niet geconfigureerd" | `.env`-bestand ontbreekt of token niet ingevuld. Zie Stap 4 hierboven. |
+| "Discogs is niet geconfigureerd" | `.env`-bestand ontbreekt of token niet ingevuld. Zie Stap 5 hierboven. |
+| `Couldn't find version of 'python'` bij `npm install` | Python ontbreekt. Zie Stap 2 hierboven, daarna PowerShell sluiten/opnieuw openen en `npm install` weer draaien. |
 
 Vragen? Stuur Dylan een berichtje.
