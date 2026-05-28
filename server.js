@@ -1,0 +1,163 @@
+const express = require('express');
+const ytSearch = require('yt-search');
+const ytDlp = require('yt-dlp-exec');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const { randomUUID } = require('crypto');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Search YouTube for multiple songs
+app.post('/api/search', async (req, res) => {
+  const { queries } = req.body;
+  if (!Array.isArray(queries) || queries.length === 0) {
+    return res.status(400).json({ error: 'Geen nummers opgegeven' });
+  }
+
+  const results = await Promise.all(
+    queries.map(async (query) => {
+      try {
+        const r = await ytSearch(query);
+        const v = r.videos[0];
+        if (!v) return { query, found: false };
+        return {
+          query,
+          found: true,
+          videoId: v.videoId,
+          title: v.title,
+          url: v.url,
+          duration: v.timestamp,
+          thumbnail: v.thumbnail,
+          channel: v.author?.name,
+        };
+      } catch {
+        return { query, found: false, error: 'Zoekfout' };
+      }
+    })
+  );
+
+  res.json(results);
+});
+
+// In-memory job tracking
+const jobs = new Map();
+
+// Start a download job — returns jobId immediately
+app.post('/api/download', (req, res) => {
+  const { videoId } = req.body;
+  if (!videoId) return res.status(400).json({ error: 'videoId ontbreekt' });
+
+  const jobId = randomUUID();
+  jobs.set(jobId, { status: 'pending', progress: 0, error: null, file: null, filename: null });
+  res.json({ jobId });
+
+  runDownload(videoId, jobId);
+});
+
+// Poll job status
+app.get('/api/job/:id', (req, res) => {
+  const job = jobs.get(req.params.id);
+  if (!job) return res.status(404).json({ error: 'Job niet gevonden' });
+  res.json({
+    status: job.status,
+    progress: job.progress,
+    error: job.error,
+    filename: job.filename,
+  });
+});
+
+// Stream the finished MP3 to the browser and clean up afterwards
+app.get('/api/file/:id', (req, res) => {
+  const job = jobs.get(req.params.id);
+  if (!job || job.status !== 'done' || !job.file) {
+    return res.status(404).json({ error: 'Bestand niet (meer) beschikbaar' });
+  }
+
+  const safeFilename = encodeURIComponent(job.filename);
+  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${safeFilename}`);
+  res.setHeader('Content-Type', 'audio/mpeg');
+
+  const stream = fs.createReadStream(job.file);
+  stream.pipe(res);
+
+  stream.on('close', () => {
+    const jobDir = path.dirname(job.file);
+    fs.rm(jobDir, { recursive: true, force: true }, () => {});
+    jobs.delete(req.params.id);
+  });
+
+  stream.on('error', () => res.end());
+});
+
+async function runDownload(videoId, jobId) {
+  const url = `https://www.youtube.com/watch?v=${videoId}`;
+  const job = jobs.get(jobId);
+  job.status = 'downloading';
+
+  const jobDir = path.join(os.tmpdir(), jobId);
+  fs.mkdirSync(jobDir, { recursive: true });
+
+  try {
+    const proc = ytDlp(url, {
+      extractAudio: true,
+      audioFormat: 'mp3',
+      audioQuality: '192K',
+      ffmpegLocation: ffmpegPath,
+      output: path.join(jobDir, '%(title)s.%(ext)s'),
+      noPlaylist: true,
+      newline: true,
+    });
+
+    const parseProgress = (chunk) => {
+      const match = chunk.toString().match(/(\d+\.?\d*)%/);
+      if (match) job.progress = parseFloat(match[1]);
+    };
+
+    proc.stdout?.on('data', parseProgress);
+    proc.stderr?.on('data', parseProgress);
+
+    await proc;
+
+    const files = fs.readdirSync(jobDir);
+    const mp3 = files.find((f) => f.endsWith('.mp3'));
+    if (!mp3) throw new Error('MP3 niet gevonden na conversie');
+
+    job.file = path.join(jobDir, mp3);
+    job.filename = mp3;
+    job.status = 'done';
+    job.progress = 100;
+  } catch (err) {
+    job.status = 'error';
+    job.error = err.shortMessage || err.message;
+    fs.rm(jobDir, { recursive: true, force: true }, () => {});
+    console.error(`Download fout [${jobId}]:`, job.error);
+  }
+}
+
+// Clean up temp files and jobs older than 1 hour
+setInterval(() => {
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  for (const [jobId, job] of jobs) {
+    if (job.file) {
+      try {
+        const { mtimeMs } = fs.statSync(job.file);
+        if (mtimeMs < cutoff) {
+          fs.rm(path.dirname(job.file), { recursive: true, force: true }, () => {});
+          jobs.delete(jobId);
+        }
+      } catch {
+        jobs.delete(jobId);
+      }
+    }
+  }
+}, 15 * 60 * 1000);
+
+app.listen(PORT, () => {
+  console.log(`\nPlaylist Downloader → http://localhost:${PORT}\n`);
+});

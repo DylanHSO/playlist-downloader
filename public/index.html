@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playlist Downloader</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>&#127925; Playlist Downloader</h1>
+      <p class="subtitle">Plak je nummers, zoek en download als MP3</p>
+    </header>
+
+    <section class="input-section">
+      <label for="songList">
+        Nummers &mdash; één per regel, bijv. <em>Taylor Swift - Shake It Off</em>
+      </label>
+      <textarea
+        id="songList"
+        placeholder="Taylor Swift - Shake It Off
+Ed Sheeran - Shape of You
+The Weeknd - Blinding Lights"
+        rows="8"
+        spellcheck="false"
+      ></textarea>
+      <div class="actions">
+        <button id="searchBtn" class="btn btn-primary">&#128269; Zoek nummers</button>
+        <button id="downloadAllBtn" class="btn btn-success" hidden>&#8659; Download alles</button>
+      </div>
+    </section>
+
+    <div id="statusBar" class="status-bar" hidden></div>
+
+    <section id="results" class="results-section" hidden>
+      <div id="resultsList"></div>
+    </section>
+
+    <p class="footer-note">MP3&rsquo;s worden gedownload via je browser</p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
