@@ -1,5 +1,41 @@
 let results = [];
 
+// Tabs
+document.querySelectorAll('.tab').forEach((tab) => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t) => {
+    t.classList.toggle('tab-active', t.dataset.tab === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach((p) => {
+    p.classList.toggle('tab-panel-active', p.id === `tab-${name}`);
+  });
+  // Reset cross-tab UI: each tab is its own workflow
+  resultsSection.hidden = true;
+  resultsBar.hidden = true;
+  channelPicker.hidden = true;
+  albumPicker.hidden = true;
+  clearStatus();
+}
+
+// Theme toggle (initial theme is set inline in <head> to avoid flash)
+const themeToggle = document.getElementById('themeToggle');
+function syncToggleIcon() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  themeToggle.textContent = isDark ? '☀️' : '\u{1F319}';
+  themeToggle.setAttribute('aria-label', isDark ? 'Schakel naar licht thema' : 'Schakel naar donker thema');
+}
+syncToggleIcon();
+themeToggle.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  syncToggleIcon();
+});
+
 const searchBtn = document.getElementById('searchBtn');
 const downloadAllBtn = document.getElementById('downloadAllBtn');
 const resultsBar = document.getElementById('resultsBar');
@@ -71,7 +107,7 @@ async function searchSongs() {
     setStatus(`Fout bij zoeken: ${err.message}`);
   } finally {
     searchBtn.disabled = false;
-    searchBtn.textContent = '🔍 Zoek nummers';
+    searchBtn.textContent = '🔍 Zoek nummer(s)';
   }
 }
 
@@ -194,6 +230,7 @@ async function pickAlbum(albumId) {
       .map(t => `${t.artist} - ${t.title}`)
       .join('\n');
     songList.value = lines;
+    switchTab('songs');
     clearStatus();
     await searchSongs();
   } catch (err) {
@@ -243,7 +280,7 @@ function renderResults(data) {
       ? `<div class="result-query">&#128250; ${_esc(r.source)}</div>`
       : r.query ? `<div class="result-query">&#128269; ${_esc(r.query)}</div>` : '';
     return `
-      <div class="result-card" data-index="${i}">
+      <div class="result-card" data-index="${i}" style="--i:${i}">
         <input type="checkbox" class="result-checkbox" id="check-${i}" data-index="${i}" checked aria-label="Selecteer voor download">
         <img class="thumbnail" src="${_esc(r.thumbnail)}" alt="" loading="lazy">
         <div class="result-info">
