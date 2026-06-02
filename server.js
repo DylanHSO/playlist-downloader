@@ -3,6 +3,7 @@ const express = require('express');
 const ytSearch = require('yt-search');
 const ytDlp = require('yt-dlp-exec');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+const archiver = require('archiver');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -120,6 +121,24 @@ async function enumerateYouTubeUrl(url) {
   return data;
 }
 
+// Duur-filter (QW4): sla shorts (<30s) en lange video's (>1u) over.
+// Entries zonder bekende duur blijven behouden (we kunnen niet beoordelen).
+const MIN_DURATION_SECS = 30;
+const MAX_DURATION_SECS = 60 * 60;
+function filterByDuration(entries) {
+  const kept = [];
+  let skipped = 0;
+  for (const e of entries || []) {
+    const d = e.duration;
+    if (typeof d === 'number' && isFinite(d) && (d < MIN_DURATION_SECS || d > MAX_DURATION_SECS)) {
+      skipped++;
+      continue;
+    }
+    kept.push(e);
+  }
+  return { kept, skipped };
+}
+
 function mapEntriesToVideos(entries, sourceName, sourceLabel) {
   return (entries || [])
     .filter((e) => e.id)
@@ -144,8 +163,9 @@ app.post('/api/channel-videos', async (req, res) => {
   try {
     const data = await enumerateYouTubeUrl(channelUrl);
     const sourceName = data.channel || data.uploader || '';
-    const videos = mapEntriesToVideos(data.entries, sourceName, 'Uit kanaal');
-    res.json({ videos, channel: { name: sourceName, total: videos.length } });
+    const { kept, skipped } = filterByDuration(data.entries);
+    const videos = mapEntriesToVideos(kept, sourceName, 'Uit kanaal');
+    res.json({ videos, skipped, channel: { name: sourceName, total: videos.length } });
   } catch (err) {
     console.error('Kanaal-video-fout:', err);
     res.status(500).json({ error: err.shortMessage || err.message || 'Onbekende fout' });
@@ -161,11 +181,12 @@ app.post('/api/playlist-videos', async (req, res) => {
   try {
     const data = await enumerateYouTubeUrl(url);
     const sourceName = data.title || data.uploader || '';
-    const videos = mapEntriesToVideos(data.entries, sourceName, 'Uit playlist');
+    const { kept, skipped } = filterByDuration(data.entries);
+    const videos = mapEntriesToVideos(kept, sourceName, 'Uit playlist');
     if (!videos.length) {
       return res.status(404).json({ error: "Geen video's gevonden in deze URL" });
     }
-    res.json({ videos, playlist: { name: sourceName, total: videos.length } });
+    res.json({ videos, skipped, playlist: { name: sourceName, total: videos.length } });
   } catch (err) {
     console.error('Playlist-video-fout:', err);
     res.status(500).json({ error: err.shortMessage || err.message || 'Onbekende fout' });
@@ -266,16 +287,22 @@ app.post('/api/album-tracks', async (req, res) => {
 // In-memory job tracking
 const jobs = new Map();
 
+// Allowed MP3 bitrates (QW1). Falls back to 192K for anything unexpected.
+const ALLOWED_BITRATES = new Set(['128K', '192K', '320K']);
+function normalizeBitrate(value) {
+  return ALLOWED_BITRATES.has(value) ? value : '192K';
+}
+
 // Start a download job — returns jobId immediately
 app.post('/api/download', (req, res) => {
-  const { videoId } = req.body;
+  const { videoId, bitrate } = req.body;
   if (!videoId) return res.status(400).json({ error: 'videoId ontbreekt' });
 
   const jobId = randomUUID();
   jobs.set(jobId, { status: 'pending', progress: 0, error: null, file: null, filename: null });
   res.json({ jobId });
 
-  runDownload(videoId, jobId);
+  runDownload(videoId, jobId, normalizeBitrate(bitrate));
 });
 
 // Poll job status
@@ -313,7 +340,73 @@ app.get('/api/file/:id', (req, res) => {
   stream.on('error', () => res.end());
 });
 
-async function runDownload(videoId, jobId) {
+// ZIP-download (OUT1): bundel meerdere afgeronde jobs in één archief.
+// De frontend downloadt elk nummer eerst los (met voortgang) en stuurt
+// daarna de verzamelde jobIds hierheen.
+const zips = new Map();
+
+app.post('/api/zip', (req, res) => {
+  const { jobIds } = req.body;
+  if (!Array.isArray(jobIds) || jobIds.length === 0) {
+    return res.status(400).json({ error: 'Geen jobIds opgegeven' });
+  }
+
+  const files = [];
+  const usedNames = new Set();
+  for (const id of jobIds) {
+    const job = jobs.get(id);
+    if (!job || job.status !== 'done' || !job.file) continue;
+    // Voorkom dubbele namen in de ZIP
+    let name = job.filename;
+    if (usedNames.has(name)) {
+      const ext = path.extname(name);
+      name = `${path.basename(name, ext)} (${usedNames.size})${ext}`;
+    }
+    usedNames.add(name);
+    files.push({ jobId: id, path: job.file, name });
+  }
+
+  if (!files.length) {
+    return res.status(404).json({ error: 'Geen downloadbare bestanden (meer) beschikbaar' });
+  }
+
+  const zipId = randomUUID();
+  zips.set(zipId, files);
+  res.json({ zipId, count: files.length });
+});
+
+app.get('/api/zip-file/:id', (req, res) => {
+  const files = zips.get(req.params.id);
+  if (!files) {
+    return res.status(404).json({ error: 'ZIP niet (meer) beschikbaar' });
+  }
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  const zipName = encodeURIComponent(`playlist-${stamp}.zip`);
+  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${zipName}`);
+  res.setHeader('Content-Type', 'application/zip');
+
+  const archive = archiver('zip', { zlib: { level: 0 } }); // MP3's zijn al gecomprimeerd
+  archive.on('error', () => res.end());
+  archive.pipe(res);
+
+  for (const f of files) {
+    if (fs.existsSync(f.path)) archive.file(f.path, { name: f.name });
+  }
+  archive.finalize();
+
+  // Ruim de onderliggende jobs en deze ZIP-entry op zodra de stream klaar is
+  res.on('close', () => {
+    for (const f of files) {
+      const job = jobs.get(f.jobId);
+      if (job?.file) fs.rm(path.dirname(job.file), { recursive: true, force: true }, () => {});
+      jobs.delete(f.jobId);
+    }
+    zips.delete(req.params.id);
+  });
+});
+
+async function runDownload(videoId, jobId, bitrate = '192K') {
   const url = `https://www.youtube.com/watch?v=${videoId}`;
   const job = jobs.get(jobId);
   job.status = 'downloading';
@@ -325,7 +418,7 @@ async function runDownload(videoId, jobId) {
     const proc = ytDlp(url, {
       extractAudio: true,
       audioFormat: 'mp3',
-      audioQuality: '192K',
+      audioQuality: bitrate,
       ffmpegLocation: ffmpegPath,
       output: path.join(jobDir, '%(title)s.%(ext)s'),
       noPlaylist: true,

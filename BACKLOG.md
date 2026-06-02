@@ -1,6 +1,6 @@
 # Feature Backlog — YouTube Playlist Downloader
 
-Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-02**.
+Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-02**. Iteratie 1 ✅ afgerond.
 
 **Complexiteitsschaal:** `S` = paar uur · `M` = 1–2 dagen · `L` = meerdere dagen · `XL` = week+ en/of technisch risico.
 
@@ -12,11 +12,11 @@ Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-02**.
 
 | ID | Status | Feature | Compl. | Toelichting |
 |----|:--:|---------|:--:|----|
-| QW1 | ⬜ | Configureerbare bitrate (128/192/320 dropdown) | S | `audioQuality` is nu hardcoded `192K` in `runDownload` ([server.js:328](server.js#L328)). Dropdown + param doorgeven. |
-| QW2 | ⬜ | Parallelle downloads (~3 tegelijk) | S–M | Server is al async per job; concurrency-pool in de frontend volstaat grotendeels. |
-| QW3 | ⬜ | `.txt` droppen op songs-tab (drag & drop) | S | Puur frontend: bestand inlezen en in de textarea zetten. |
-| QW4 | ⬜ | Duur-filter channel/playlist (skip 1h+ / <30s) | S | Duur is al beschikbaar in `mapEntriesToVideos` ([server.js:123](server.js#L123)). |
-| OUT1 | ⬜ | ZIP-download bij "Download alles" | M | Batch-endpoint + `archiver`. Vervangt 30× losse popups door 1 bestand. |
+| QW1 | ✅ | Configureerbare bitrate (128/192/320 dropdown) | S | Dropdown in de results-bar; `bitrate` doorgegeven aan `/api/download` (whitelist, fallback 192K). |
+| QW2 | ✅ | Parallelle downloads (~3 tegelijk) | S–M | Concurrency-pool van 3 workers in `downloadSelected`. |
+| QW3 | ✅ | `.txt` droppen op songs-tab (drag & drop) | S | Drop-handlers op de textarea; leest `.txt` in en voegt regels toe. |
+| QW4 | ✅ | Duur-filter channel/playlist (skip 1h+ / <30s) | S | `filterByDuration` op channel- en playlist-entries; toont aantal overgeslagen. |
+| OUT1 | ✅ | ZIP-download bij "Download alles" | M | `POST /api/zip` + `GET /api/zip-file/:id` met `archiver` v7; "Als ZIP"-toggle in de UI. |
 
 ## 🎯 Iteratie 2 — Trefzekerheid
 

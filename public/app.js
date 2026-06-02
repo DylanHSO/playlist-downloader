@@ -54,6 +54,15 @@ const albumPickerList = document.getElementById('albumPickerList');
 const playlistInput = document.getElementById('playlistInput');
 const playlistSearchBtn = document.getElementById('playlistSearchBtn');
 const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+const bitrateSelect = document.getElementById('bitrateSelect');
+const zipCheckbox = document.getElementById('zipCheckbox');
+
+// Aantal gelijktijdige downloads (QW2)
+const DOWNLOAD_CONCURRENCY = 3;
+
+function getBitrate() {
+  return bitrateSelect?.value || '192K';
+}
 
 searchBtn.addEventListener('click', searchSongs);
 downloadAllBtn.addEventListener('click', downloadSelected);
@@ -64,6 +73,38 @@ albumInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchAlb
 playlistSearchBtn.addEventListener('click', loadPlaylist);
 playlistInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadPlaylist(); });
 selectAllCheckbox.addEventListener('change', toggleSelectAll);
+
+// .txt drag & drop op de songs-tab (QW3)
+['dragenter', 'dragover'].forEach((evt) =>
+  songList.addEventListener(evt, (e) => {
+    e.preventDefault();
+    songList.classList.add('drag-over');
+  })
+);
+['dragleave', 'dragend'].forEach((evt) =>
+  songList.addEventListener(evt, () => songList.classList.remove('drag-over'))
+);
+songList.addEventListener('drop', (e) => {
+  e.preventDefault();
+  songList.classList.remove('drag-over');
+  const file = e.dataTransfer?.files?.[0];
+  if (!file) return;
+  if (!/\.txt$/i.test(file.name) && file.type !== 'text/plain') {
+    setStatus('Alleen .txt-bestanden worden ondersteund.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = String(reader.result || '').trim();
+    songList.value = songList.value.trim()
+      ? `${songList.value.trim()}\n${text}`
+      : text;
+    const count = songList.value.split('\n').filter((l) => l.trim()).length;
+    setStatus(`"${file.name}" ingeladen — ${count} regel${count !== 1 ? 's' : ''}.`);
+  };
+  reader.onerror = () => setStatus('Kon het bestand niet lezen.');
+  reader.readAsText(file);
+});
 
 albumPickerList.addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-album-id]');
@@ -195,7 +236,7 @@ async function loadPlaylist() {
     const data = await res.json();
     results = data.videos;
     renderResults(results);
-    setStatus(`${results.length} video's gevonden. Vink uit wat je niet wil downloaden.`);
+    setStatus(foundMessage(results.length, data.skipped));
   } catch (err) {
     setStatus(`Fout bij ophalen playlist: ${err.message}`);
   } finally {
@@ -302,7 +343,7 @@ async function pickChannel(channelUrl) {
       return;
     }
     renderResults(results);
-    setStatus(`${results.length} video's gevonden. Vink uit wat je niet wil downloaden.`);
+    setStatus(foundMessage(results.length, data.skipped));
   } catch (err) {
     setStatus(`Fout bij ophalen video's: ${err.message}`);
   }
@@ -393,16 +434,17 @@ function toggleSelectAll() {
   updateDownloadAllLabel();
 }
 
-async function downloadSong(index) {
+// Voert de downloadjob uit en pollt de voortgang. Retourneert de jobId,
+// of null bij een fout. Triggert zelf géén browser-download — dat doet de
+// aanroeper (los bestand of via ZIP).
+async function runSongJob(index) {
   const r = results[index];
-  if (!r?.found) return false;
+  if (!r?.found) return null;
 
   const btn = document.getElementById(`dl-btn-${index}`);
   const wrap = document.getElementById(`progress-wrap-${index}`);
   const fill = document.getElementById(`progress-fill-${index}`);
   const pct = document.getElementById(`progress-pct-${index}`);
-
-  if (btn.classList.contains('btn-done')) return true;
 
   btn.disabled = true;
   btn.textContent = '⏳ Bezig...';
@@ -412,26 +454,40 @@ async function downloadSong(index) {
     const res = await fetch('/api/download', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoId: r.videoId }),
+      body: JSON.stringify({ videoId: r.videoId, bitrate: getBitrate() }),
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-
-    const jobId = await pollJob(data.jobId, fill, pct);
-
-    triggerDownload(`/api/file/${jobId}`);
-
-    btn.textContent = '✓ Gedownload';
-    btn.classList.remove('btn-download');
-    btn.classList.add('btn-done');
-    return true;
+    return await pollJob(data.jobId, fill, pct);
   } catch (err) {
     btn.textContent = '✗ Fout';
     btn.classList.add('btn-error');
     btn.disabled = false;
     console.error('Download fout:', err);
-    return false;
+    return null;
   }
+}
+
+function markSongDone(index, label) {
+  const btn = document.getElementById(`dl-btn-${index}`);
+  if (!btn) return;
+  btn.textContent = label;
+  btn.classList.remove('btn-download');
+  btn.classList.add('btn-done');
+  btn.disabled = true;
+}
+
+// Losse download via de knop per regel
+async function downloadSong(index) {
+  const btn = document.getElementById(`dl-btn-${index}`);
+  if (btn?.classList.contains('btn-done')) return true;
+
+  const jobId = await runSongJob(index);
+  if (!jobId) return false;
+
+  triggerDownload(`/api/file/${jobId}`);
+  markSongDone(index, '✓ Gedownload');
+  return true;
 }
 
 function pollJob(jobId, fill, pct) {
@@ -470,18 +526,70 @@ function triggerDownload(url) {
 
 async function downloadSelected() {
   downloadAllBtn.disabled = true;
+
   const toDownload = results
     .map((r, i) => ({ ...r, index: i }))
     .filter(r => r.found)
-    .filter(r => document.getElementById(`check-${r.index}`)?.checked);
+    .filter(r => document.getElementById(`check-${r.index}`)?.checked)
+    .filter(r => !document.getElementById(`dl-btn-${r.index}`)?.classList.contains('btn-done'));
 
-  for (const r of toDownload) {
-    const btn = document.getElementById(`dl-btn-${r.index}`);
-    if (btn?.classList.contains('btn-done')) continue;
-    await downloadSong(r.index);
+  if (!toDownload.length) {
+    updateDownloadAllLabel();
+    return;
+  }
+
+  const asZip = zipCheckbox?.checked;
+  const completed = [];
+
+  // Concurrency-pool: maximaal DOWNLOAD_CONCURRENCY tegelijk (QW2)
+  let cursor = 0;
+  async function worker() {
+    while (cursor < toDownload.length) {
+      const item = toDownload[cursor++];
+      const jobId = await runSongJob(item.index);
+      if (!jobId) continue;
+      completed.push(jobId);
+      if (asZip) {
+        markSongDone(item.index, '✓ Klaar');
+      } else {
+        triggerDownload(`/api/file/${jobId}`);
+        markSongDone(item.index, '✓ Gedownload');
+      }
+    }
+  }
+  const workers = Array.from(
+    { length: Math.min(DOWNLOAD_CONCURRENCY, toDownload.length) },
+    worker
+  );
+  await Promise.all(workers);
+
+  // ZIP samenstellen van alle geslaagde downloads (OUT1)
+  if (asZip && completed.length) {
+    setStatus(`${completed.length} nummer${completed.length !== 1 ? 's' : ''} inpakken in ZIP...`);
+    try {
+      const res = await fetch('/api/zip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobIds: completed }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      triggerDownload(`/api/zip-file/${data.zipId}`);
+      setStatus(`ZIP met ${data.count} nummer${data.count !== 1 ? 's' : ''} wordt gedownload.`);
+    } catch (err) {
+      setStatus(`Fout bij ZIP maken: ${err.message}`);
+    }
   }
 
   updateDownloadAllLabel();
+}
+
+function foundMessage(count, skipped) {
+  let msg = `${count} video${count !== 1 ? "'s" : ''} gevonden. Vink uit wat je niet wil downloaden.`;
+  if (skipped > 0) {
+    msg += ` (${skipped} overgeslagen: korter dan 30s of langer dan 1u.)`;
+  }
+  return msg;
 }
 
 function setStatus(msg) {
