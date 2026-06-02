@@ -38,6 +38,7 @@
       <section class="input-section">
         <label for="songList">
           Nummers &mdash; één per regel, bijv. <em>Taylor Swift - Shake It Off</em>
+          <span class="label-hint">&mdash; of sleep een <code>.txt</code>-bestand hierin</span>
         </label>
         <textarea
           id="songList"
@@ -124,6 +125,18 @@ The Weeknd - Blinding Lights"
         <label class="select-all-label">
           <input type="checkbox" id="selectAllCheckbox" checked>
           <span>Alles</span>
+        </label>
+        <label class="bitrate-label" for="bitrateSelect">
+          Kwaliteit
+          <select id="bitrateSelect" class="bitrate-select">
+            <option value="128K">128 kbps</option>
+            <option value="192K" selected>192 kbps</option>
+            <option value="320K">320 kbps</option>
+          </select>
+        </label>
+        <label class="zip-label" title="Bundel de selectie in één ZIP-bestand">
+          <input type="checkbox" id="zipCheckbox" checked>
+          <span>Als ZIP</span>
         </label>
         <button id="downloadAllBtn" class="btn btn-success">&#8659; Download alles</button>
       </div>

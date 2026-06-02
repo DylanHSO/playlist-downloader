@@ -418,6 +418,53 @@ textarea:focus,
   cursor: pointer;
 }
 
+/* Bitrate-keuze + ZIP-toggle in de results-bar (QW1 / OUT1) */
+.bitrate-label,
+.zip-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.bitrate-select {
+  font-size: 0.85rem;
+  padding: 5px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.bitrate-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.zip-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Drag & drop van .txt op de songs-tab (QW3) */
+.label-hint {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+textarea.drag-over {
+  border-color: var(--accent);
+  border-style: dashed;
+  background: var(--surface-2);
+}
+
 .result-card {
   background: var(--surface);
   border-radius: 12px;
