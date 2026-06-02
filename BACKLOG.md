@@ -1,0 +1,46 @@
+# Feature Backlog — YouTube Playlist Downloader
+
+Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-02**.
+
+**Complexiteitsschaal:** `S` = paar uur · `M` = 1–2 dagen · `L` = meerdere dagen · `XL` = week+ en/of technisch risico.
+
+**Status-legenda:** ⬜ todo · 🔄 bezig · ✅ klaar
+
+---
+
+## 🎯 Iteratie 1 — Quick wins + ZIP
+
+| ID | Status | Feature | Compl. | Toelichting |
+|----|:--:|---------|:--:|----|
+| QW1 | ⬜ | Configureerbare bitrate (128/192/320 dropdown) | S | `audioQuality` is nu hardcoded `192K` in `runDownload` ([server.js:328](server.js#L328)). Dropdown + param doorgeven. |
+| QW2 | ⬜ | Parallelle downloads (~3 tegelijk) | S–M | Server is al async per job; concurrency-pool in de frontend volstaat grotendeels. |
+| QW3 | ⬜ | `.txt` droppen op songs-tab (drag & drop) | S | Puur frontend: bestand inlezen en in de textarea zetten. |
+| QW4 | ⬜ | Duur-filter channel/playlist (skip 1h+ / <30s) | S | Duur is al beschikbaar in `mapEntriesToVideos` ([server.js:123](server.js#L123)). |
+| OUT1 | ⬜ | ZIP-download bij "Download alles" | M | Batch-endpoint + `archiver`. Vervangt 30× losse popups door 1 bestand. |
+
+## 🎯 Iteratie 2 — Trefzekerheid
+
+| ID | Status | Feature | Compl. | Toelichting |
+|----|:--:|---------|:--:|----|
+| RB1 | ⬜ | Top-3 alternatieven + wisselknop | M | Tegen lyric-/sped-up-/nightcore-hits. Search meerdere resultaten teruggeven + UI om te kiezen. |
+| RB2 | ⬜ | Auto-retry met andere zoekterm | M | Bij fail of <30s; sluit Shorts uit. Logica in search/download. |
+
+## 📋 Backlog — later, volgorde nog te bepalen
+
+| ID | Status | Feature | Compl. | Toelichting |
+|----|:--:|---------|:--:|----|
+| OUT2 | ⬜ | ID3-tags + cover art in MP3 | M | Titel/artiest/album/jaar/cover via `node-id3`. Bij Album-tab is de info er al (Discogs); grootste winst daar. |
+| IN1 | ⬜ | Discogs releases tonen (niet alleen masters) | S–M | Voor compilations/live-albums zonder master. Uitbreiding bestaande Discogs-calls. |
+| IN2 | ⬜ | Spotify-playlist-URL → YouTube-audio | M–L | Spotify API (client-credentials, dev-app + secret nodig). Tracklist ophalen, bestaande search hergebruiken. |
+| IN3 | ⬜ | Foto-upload → tracklist herkennen (vision) | L | Foto van hoes/tracklist → tekst via vision → matchen op YouTube. Nieuwe pipeline + AI-kosten. "Lijstfoto" past hier ook in. |
+| IN4 | ⬜ | Instagram koppelen & uitlezen | XL | Platen-posts → nummers. Geen vriendelijke officiële API; scrapen fragiel + ToS-risico. Bouwt op IN3 voor herkenning. |
+| IN5 | ⬜ | Diepe zoekmachine (auteur/label) | L–XL | Web afstruinen → tekstresultaat → doorklik naar YouTube-lookup. Scope kan uitlopen. |
+| DST1 | ⬜ | Electron-bundel (.exe) | L | yt-dlp + ffmpeg meebundelen; geen Node/Python install meer. Schrapt hoofdstuk 1–4 van de handleiding. |
+
+---
+
+## Notities & afhankelijkheden
+
+- **IN3 ↔ IN4:** Instagram-posts uitlezen leunt op dezelfde vision-/herkenningsstap als foto-upload. Doe IN3 eerst; IN4 wordt dan "haal de afbeelding uit een IG-post en gooi 'm door IN3".
+- **OUT2** profiteert het meest bij de Album-tab, waar de metadata (artiest/album/jaar/cover) al via Discogs binnenkomt.
+- **IN4 / IN5 / DST1** zijn elk een mini-project op zich — bewust naar achteren geschoven.
