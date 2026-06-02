@@ -1,108 +1,76 @@
-# Handleiding — Playlist Downloader lokaal draaien
+# Handleiding — Playlist Downloader
 
 Een lokale app om een lijst nummers als MP3 te downloaden via YouTube. Alles draait op je eigen laptop — geen cloud, geen account.
 
-## Wat je nodig hebt
+Er zijn twee manieren om de app te gebruiken:
 
-Een Windows-laptop met internet. De installatie regelt verder alles zelf (ook de YouTube-downloader en ffmpeg — niks handmatig).
-
----
-
-## Eerste keer installeren (~5 minuten)
-
-### Stap 1 — Node.js installeren
-
-1. Ga naar **https://nodejs.org/**
-2. Klik op de groene knop met **"LTS"** (de aanbevolen, stabiele versie)
-3. Open het gedownloade `.msi`-bestand en klik telkens "Next" tot 'ie klaar is. Alle standaardinstellingen kunnen zo blijven.
-4. **Herstart je laptop** na de installatie (anders herkent Windows `npm` nog niet)
-
-### Stap 2 — Python installeren
-
-Een van de modules in de app (`yt-dlp-exec`) controleert tijdens de installatie of Python aanwezig is. Daarom moet je Python ook installeren.
-
-**Makkelijkste manier (via Microsoft Store):**
-1. Open Microsoft Store
-2. Zoek op **"Python"** → kies de nieuwste versie (3.12 of 3.13) → klik **Installeren**
-3. Klaar — Python staat automatisch in je PATH
-
-**Alternatief (via python.org):**
-1. Ga naar **https://www.python.org/downloads/**
-2. Klik **"Download Python 3.x"**
-3. Open het installer-bestand en **vink belangrijk: "Add python.exe to PATH" aan** op het eerste scherm
-4. Klik door tot 'ie klaar is
-
-### Stap 3 — De app downloaden
-
-1. Ga naar **https://github.com/DylanHSO/playlist-downloader**
-2. Klik op de groene knop **`<> Code`**
-3. Klik **"Download ZIP"**
-4. Pak de ZIP uit op een handige plek, bijv. `C:\Users\<jouwnaam>\playlist-downloader`
-
-### Stap 4 — Eenmalig benodigdheden installeren
-
-1. Open de uitgepakte map in Verkenner
-2. Klik bovenaan in de **adresbalk** (waar het pad staat), typ `powershell` en druk **Enter** → er opent een blauw terminal-venster
-3. In dat venster, typ:
-   ```
-   npm install
-   ```
-   Druk Enter en wacht 1-2 minuten. De terminal downloadt alle benodigdheden. Klaar als je weer een lege regel ziet met je map-pad.
-
-### Stap 5 — Discogs-token aanmaken (alleen nodig voor de "album"-functie)
-
-Voor het ophalen van een tracklist via een album-naam gebruikt de app de Discogs API. Dat vereist een gratis token op naam van jezelf.
-
-1. Maak een gratis account aan op **https://www.discogs.com/** (als je die nog niet hebt)
-2. Ga naar **https://www.discogs.com/settings/developers**
-3. Klik **"Generate new token"** en kopieer de token-reeks
-4. Maak in de app-map een bestand aan met de naam **`.env`** (let op het puntje vooraan, en géén `.txt` erachter — zet "Bestandsnaamextensies" aan in Verkenner als die verborgen zijn)
-5. Open `.env` met Kladblok en zet er één regel in:
-   ```
-   DISCOGS_TOKEN=jouw_token_hier
-   ```
-6. Sla op en sluit
-
-Als je de app al draait, sluit dan PowerShell en start opnieuw met `npm start` — de token wordt alleen bij opstart gelezen.
-
-> Zonder Discogs-token werken de songs-lijst en het kanaal-zoeken nog steeds. Alleen de "album"-knop geeft dan een nette foutmelding.
+- **Voor gebruikers** — installeer de kant-en-klare app (`.exe`). Geen Node, geen Python, niks technisch.
+- **Voor ontwikkelaars** — draai de broncode met Node, of bouw zelf een nieuwe `.exe`.
 
 ---
 
-## Bij updates van de app
+## Voor gebruikers — de app installeren
 
-Als Dylan een nieuwe versie pusht en je downloadt een nieuwe ZIP: pak 'm uit, en draai **altijd opnieuw `npm install`** voordat je `npm start` doet. Zo worden eventuele nieuwe modules binnengehaald.
+### Installeren (1 minuut)
 
----
+1. Vraag Dylan om het installatiebestand **`Playlist Downloader Setup x.x.x.exe`** (of download het van de afgesproken plek).
+2. Dubbelklik het bestand.
+3. Krijg je een blauw **"Windows heeft je pc beschermd"**-scherm (SmartScreen)? Dat komt omdat de app niet ondertekend is. Klik **"Meer informatie"** → **"Toch uitvoeren"**.
+4. Kies eventueel een installatiemap en klik **Installeren**. Klaar — er staat nu een snelkoppeling **Playlist Downloader** in je Startmenu en op je bureaublad.
 
-## App starten en gebruiken
+### Gebruiken
 
-### Starten
-
-1. Open de app-map in Verkenner
-2. Klik in de adresbalk → typ `powershell` → Enter
-3. Typ:
-   ```
-   npm start
-   ```
-4. Je ziet: `Playlist Downloader → http://localhost:3000`
-5. Open je browser en ga naar **http://localhost:3000**
-
-### Nummers downloaden
-
-1. Plak je lijst in het tekstvak, één regel per nummer als `Artiest - Nummer`. Bijvoorbeeld:
+1. Open **Playlist Downloader** (Startmenu of bureaublad). Er opent één venster — geen browser nodig.
+2. Plak je lijst in het tekstvak, één regel per nummer als `Artiest - Nummer`. Bijvoorbeeld:
    ```
    Taylor Swift - Shake It Off
    Volbeat - Lola Montez
    Metallica - Nothing Else Matters
    ```
-2. Klik op **"🔍 Zoek nummers"**
-3. Per nummer kan je op **"⬇ MP3"** klikken, of in één keer op **"Download alles"**
-4. De MP3's komen in je standaard **Downloads**-map van je browser
+   Je kunt ook een `.txt`-bestand in het tekstvak slepen.
+3. Klik op **🔍 Zoek nummer(s)**.
+4. Kies je kwaliteit (bitrate) en of je alles als één **ZIP** wil. Klik per nummer op **⬇ MP3**, of in één keer op **Download alles**.
+5. Windows vraagt waar je het bestand wil opslaan.
 
-### Stoppen
+Naast de songs-lijst zijn er tabs voor een heel **kanaal**, een **album** (tracklist via Discogs) en een **YouTube-playlist**.
 
-Druk **Ctrl+C** in het PowerShell-venster, of sluit het venster gewoon. De app is dan uit.
+### Album-tab aanzetten (Discogs-token)
+
+De Album-tab haalt tracklists op via de Discogs API. Dat vereist een gratis, persoonlijke token:
+
+1. Maak een gratis account op **https://www.discogs.com/** (als je die nog niet hebt).
+2. Ga naar **https://www.discogs.com/settings/developers** → **"Generate new token"** en kopieer de reeks.
+3. Klik in de app rechtsboven op **⚙️** (Instellingen), plak je token en klik **Opslaan**.
+
+De token wordt lokaal op jouw computer bewaard en blijft bewaard na updates. Zonder token werken de songs-, kanaal- en playlist-tabs gewoon; alleen de Album-tab geeft dan een nette melding.
+
+---
+
+## Voor ontwikkelaars
+
+### Broncode draaien
+
+Vereist **Node.js 18+** (https://nodejs.org/, LTS).
+
+```
+npm install
+npm start
+```
+
+Open daarna **http://localhost:3000** in je browser. In deze modus kun je de Discogs-token ook via een `.env`-bestand zetten (`DISCOGS_TOKEN=...`); die heeft dan voorrang en is niet via de ⚙️-instellingen te wijzigen.
+
+### Een `.exe` bouwen
+
+```
+npm install
+npm run dist
+```
+
+De NSIS-installer komt in de map **`dist/`** te staan (`Playlist Downloader Setup x.x.x.exe`). yt-dlp en ffmpeg worden automatisch meegebundeld — de eindgebruiker hoeft niets extra's te installeren.
+
+> De build is niet code-signed; eindgebruikers krijgen daarom eenmalig een SmartScreen-melding (zie hierboven). Code signing kan later toegevoegd worden met een certificaat.
+>
+> In de build-config staat `signAndEditExecutable: false`. Dat slaat de `winCodeSign`/`rcedit`-stap over (die op Windows zonder Developer Mode of admin-rechten faalt op symlink-extractie). Gevolg: de app gebruikt voorlopig het standaard Electron-icoon. Wil je een eigen icoon? Zet een `build/icon.ico` neer, schakel `signAndEditExecutable` weer in en bouw vanuit een terminal met admin-rechten (of met Windows Developer Mode aan).
 
 ---
 
@@ -110,13 +78,11 @@ Druk **Ctrl+C** in het PowerShell-venster, of sluit het venster gewoon. De app i
 
 | Probleem | Oplossing |
 |---|---|
-| `npm is not recognized` | Node.js niet (correct) geïnstalleerd. Herstart de laptop na installatie. |
-| `Cannot GET /api/file/...` in de browser | Een oude versie van de app draait nog. Sluit PowerShell, open opnieuw, `npm start`. |
-| `Cannot find module 'dotenv'` (of een andere module) | Je hebt een nieuwere versie van de app gedownload maar `npm install` nog niet opnieuw gedraaid. Draai `npm install` opnieuw in de map, dan `npm start`. |
-| Browser zegt "Site can't be reached" | App draait niet meer — start opnieuw met `npm start`. |
+| "Windows heeft je pc beschermd" bij installeren | Normaal voor een niet-ondertekende app. Klik "Meer informatie" → "Toch uitvoeren". |
+| De app opent niet / scherm blijft leeg | Sluit 'm volledig af (ook in de taakbalk) en start opnieuw. |
 | YouTube vindt een nummer niet | Probeer een specifiekere zoekterm, bijv. `Artiest - Nummer (Official Audio)`. |
 | "Sign in to confirm you're not a bot" | YouTube vermoedt een bot. Stuur Dylan een berichtje, dan helpt 'ie met een cookie-bestand. |
-| "Discogs is niet geconfigureerd" | `.env`-bestand ontbreekt of token niet ingevuld. Zie Stap 5 hierboven. |
-| `Couldn't find version of 'python'` bij `npm install` | Python ontbreekt. Zie Stap 2 hierboven, daarna PowerShell sluiten/opnieuw openen en `npm install` weer draaien. |
+| "Discogs is niet geconfigureerd" | Token ontbreekt. Klik op ⚙️ en plak je Discogs-token (zie hierboven). |
+| (ontwikkelaar) `Cannot find module ...` | Draai `npm install` opnieuw. |
 
 Vragen? Stuur Dylan een berichtje.

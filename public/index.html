@@ -22,9 +22,33 @@
         <h1>&#127925; Playlist Downloader</h1>
         <p class="subtitle">Plak je nummers, zoek en download als MP3</p>
       </div>
-      <button id="themeToggle" class="theme-toggle" aria-label="Wissel thema">&#127769;</button>
+      <div class="hero-actions">
+        <button id="settingsBtn" class="theme-toggle" aria-label="Instellingen" title="Instellingen">&#9881;&#65039;</button>
+        <button id="themeToggle" class="theme-toggle" aria-label="Wissel thema">&#127769;</button>
+      </div>
     </div>
   </header>
+
+  <div id="settingsModal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-header">
+        <h2 id="settingsTitle">&#9881;&#65039; Instellingen</h2>
+        <button id="settingsClose" class="modal-close" aria-label="Sluiten">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="discogsToken">Discogs-token <span class="label-hint">&mdash; nodig voor de Album-tab</span></label>
+        <input id="discogsToken" type="password" class="channel-input" placeholder="Plak hier je Discogs-token" autocomplete="off" spellcheck="false">
+        <p class="modal-help">
+          Gratis aan te maken op <a href="https://www.discogs.com/settings/developers" target="_blank" rel="noopener noreferrer">discogs.com/settings/developers</a> &rarr; "Generate new token".
+          Wordt lokaal op deze computer opgeslagen.
+        </p>
+        <div id="settingsStatus" class="modal-status" hidden></div>
+      </div>
+      <div class="modal-footer">
+        <button id="settingsSave" class="btn btn-primary">Opslaan</button>
+      </div>
+    </div>
+  </div>
 
   <div class="container">
     <nav class="tabs" role="tablist">

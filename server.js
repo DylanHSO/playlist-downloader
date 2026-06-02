@@ -1,16 +1,52 @@
 require('dotenv').config();
 const express = require('express');
 const ytSearch = require('yt-search');
-const ytDlp = require('yt-dlp-exec');
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+const ytDlpExec = require('yt-dlp-exec');
 const archiver = require('archiver');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { randomUUID } = require('crypto');
 
-const DISCOGS_TOKEN = process.env.DISCOGS_TOKEN;
+// In een gebundelde Electron-app zitten binaries in app.asar (read-only) en
+// worden ze door electron-builder uitgepakt naar app.asar.unpacked. Voor het
+// uitvoeren moeten we dus naar dat uitgepakte pad wijzen.
+function unpacked(p) {
+  return p && p.includes(`app.asar${path.sep}`)
+    ? p.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`)
+    : p;
+}
+
+const ffmpegPath = unpacked(require('@ffmpeg-installer/ffmpeg').path);
+const ytDlpPath = unpacked(require('yt-dlp-exec/src/constants').YOUTUBE_DL_PATH);
+const ytDlp = ytDlpExec.create(ytDlpPath);
+
 const DISCOGS_UA = 'PlaylistDownloader/0.2 (+local)';
+
+// Instellingen-opslag. In de Electron-app zet main.js APP_CONFIG_DIR op de
+// userData-map; daarbuiten (npm start) valt 'ie terug op de home-map.
+const CONFIG_DIR = process.env.APP_CONFIG_DIR || path.join(os.homedir(), '.playlist-downloader');
+const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
+
+function readConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function writeConfig(patch) {
+  const next = { ...readConfig(), ...patch };
+  fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(next, null, 2));
+  return next;
+}
+
+// Token uit .env (dev) heeft voorrang, anders uit de opgeslagen config.
+function getDiscogsToken() {
+  return process.env.DISCOGS_TOKEN || readConfig().discogsToken || '';
+}
 
 function discogsError(r) {
   if (r.status === 429) {
@@ -18,7 +54,7 @@ function discogsError(r) {
     return new Error(`Discogs limiet bereikt. Probeer over ~${retry}s opnieuw.`);
   }
   if (r.status === 401 || r.status === 403) {
-    return new Error('Discogs-token ongeldig of geweigerd. Check DISCOGS_TOKEN in .env.');
+    return new Error('Discogs-token ongeldig of geweigerd. Controleer je token via ⚙️ Instellingen.');
   }
   return new Error(`Discogs gaf HTTP ${r.status}`);
 }
@@ -200,11 +236,38 @@ function formatDuration(secs) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+// Instellingen — lees status (lekt de token niet) en sla 'm op.
+app.get('/api/settings', (req, res) => {
+  res.json({
+    discogsConfigured: !!getDiscogsToken(),
+    // Token uit .env kan niet via de UI worden overschreven
+    discogsLocked: !!process.env.DISCOGS_TOKEN,
+  });
+});
+
+app.post('/api/settings', (req, res) => {
+  if (process.env.DISCOGS_TOKEN) {
+    return res.status(409).json({ error: 'Token staat vast via .env en kan niet via de app worden gewijzigd.' });
+  }
+  const { discogsToken } = req.body;
+  if (typeof discogsToken !== 'string') {
+    return res.status(400).json({ error: 'discogsToken ontbreekt' });
+  }
+  try {
+    writeConfig({ discogsToken: discogsToken.trim() });
+    res.json({ discogsConfigured: !!discogsToken.trim() });
+  } catch (err) {
+    console.error('Instellingen opslaan mislukt:', err);
+    res.status(500).json({ error: 'Kon instellingen niet opslaan' });
+  }
+});
+
 // Discogs — search master releases by query
 app.post('/api/album-search', async (req, res) => {
-  if (!DISCOGS_TOKEN) {
+  const token = getDiscogsToken();
+  if (!token) {
     return res.status(503).json({
-      error: 'Discogs is niet geconfigureerd. Zet DISCOGS_TOKEN in .env (zie HANDLEIDING).',
+      error: 'Discogs is niet geconfigureerd. Voeg je token toe via ⚙️ Instellingen.',
     });
   }
   const { query } = req.body;
@@ -217,7 +280,7 @@ app.post('/api/album-search', async (req, res) => {
     url.searchParams.set('q', query);
     url.searchParams.set('type', 'master');
     url.searchParams.set('per_page', '5');
-    url.searchParams.set('token', DISCOGS_TOKEN);
+    url.searchParams.set('token', token);
 
     const r = await fetch(url, { headers: { 'User-Agent': DISCOGS_UA } });
     if (!r.ok) throw discogsError(r);
@@ -244,14 +307,15 @@ app.post('/api/album-search', async (req, res) => {
 
 // Discogs — fetch tracklist for a master release
 app.post('/api/album-tracks', async (req, res) => {
-  if (!DISCOGS_TOKEN) {
+  const token = getDiscogsToken();
+  if (!token) {
     return res.status(503).json({ error: 'Discogs is niet geconfigureerd' });
   }
   const { albumId } = req.body;
   if (!albumId) return res.status(400).json({ error: 'albumId ontbreekt' });
 
   try {
-    const url = `https://api.discogs.com/masters/${encodeURIComponent(albumId)}?token=${encodeURIComponent(DISCOGS_TOKEN)}`;
+    const url = `https://api.discogs.com/masters/${encodeURIComponent(albumId)}?token=${encodeURIComponent(token)}`;
     const r = await fetch(url, { headers: { 'User-Agent': DISCOGS_UA } });
     if (!r.ok) throw discogsError(r);
     const data = await r.json();
@@ -469,6 +533,22 @@ setInterval(() => {
   }
 }, 15 * 60 * 1000);
 
-app.listen(PORT, () => {
-  console.log(`\nPlaylist Downloader → http://localhost:${PORT}\n`);
-});
+// Start de HTTP-server. Met port 0 kiest het OS een vrije poort (handig voor
+// de Electron-app); retourneert de daadwerkelijke poort.
+function start(port = PORT) {
+  return new Promise((resolve, reject) => {
+    const server = app.listen(port, '127.0.0.1', () => {
+      resolve({ server, port: server.address().port });
+    });
+    server.on('error', reject);
+  });
+}
+
+module.exports = { app, start };
+
+// Direct via `node server.js` (CLI-modus): luister op de vaste poort.
+if (require.main === module) {
+  start(PORT).then(({ port }) => {
+    console.log(`\nPlaylist Downloader → http://localhost:${port}\n`);
+  });
+}
