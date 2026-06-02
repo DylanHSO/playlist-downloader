@@ -35,7 +35,7 @@ Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-02**. Iteratie 1 ✅ afgero
 | IN3 | ⬜ | Foto-upload → tracklist herkennen (vision) | L | Foto van hoes/tracklist → tekst via vision → matchen op YouTube. Nieuwe pipeline + AI-kosten. "Lijstfoto" past hier ook in. |
 | IN4 | ⬜ | Instagram koppelen & uitlezen | XL | Platen-posts → nummers. Geen vriendelijke officiële API; scrapen fragiel + ToS-risico. Bouwt op IN3 voor herkenning. |
 | IN5 | ⬜ | Diepe zoekmachine (auteur/label) | L–XL | Web afstruinen → tekstresultaat → doorklik naar YouTube-lookup. Scope kan uitlopen. |
-| DST1 | ⬜ | Electron-bundel (.exe) | L | yt-dlp + ffmpeg meebundelen; geen Node/Python install meer. Schrapt hoofdstuk 1–4 van de handleiding. |
+| DST1 | ✅ | Electron-bundel (.exe) | L | NSIS-installer via electron-builder; yt-dlp + ffmpeg meegebundeld (asarUnpack). Discogs-token via in-app ⚙️ Instellingen i.p.v. `.env`. |
 
 ---
 

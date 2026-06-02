@@ -36,6 +36,82 @@ themeToggle.addEventListener('click', () => {
   syncToggleIcon();
 });
 
+// Instellingen-modal (Discogs-token)
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsModal = document.getElementById('settingsModal');
+const settingsClose = document.getElementById('settingsClose');
+const settingsSave = document.getElementById('settingsSave');
+const discogsTokenInput = document.getElementById('discogsToken');
+const settingsStatus = document.getElementById('settingsStatus');
+
+function setSettingsStatus(msg) {
+  settingsStatus.textContent = msg;
+  settingsStatus.hidden = !msg;
+}
+
+async function openSettings() {
+  setSettingsStatus('');
+  discogsTokenInput.value = '';
+  discogsTokenInput.disabled = false;
+  settingsSave.disabled = false;
+  settingsModal.hidden = false;
+  try {
+    const res = await fetch('/api/settings');
+    const s = await res.json();
+    if (s.discogsLocked) {
+      discogsTokenInput.placeholder = 'Vastgezet via .env — niet wijzigbaar';
+      discogsTokenInput.disabled = true;
+      settingsSave.disabled = true;
+      setSettingsStatus('Token is via .env ingesteld.');
+    } else if (s.discogsConfigured) {
+      discogsTokenInput.placeholder = '•••••••• (token is ingesteld — leeg laten om te behouden)';
+      setSettingsStatus('Discogs is geconfigureerd.');
+    } else {
+      discogsTokenInput.placeholder = 'Plak hier je Discogs-token';
+    }
+  } catch {
+    /* offline status is niet kritiek */
+  }
+}
+
+function closeSettings() {
+  settingsModal.hidden = true;
+}
+
+async function saveSettings() {
+  const token = discogsTokenInput.value.trim();
+  if (!token) {
+    closeSettings();
+    return;
+  }
+  settingsSave.disabled = true;
+  setSettingsStatus('Opslaan...');
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discogsToken: token }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    setSettingsStatus('Opgeslagen ✓');
+    setTimeout(closeSettings, 600);
+  } catch (err) {
+    setSettingsStatus(`Fout: ${err.message}`);
+    settingsSave.disabled = false;
+  }
+}
+
+settingsBtn.addEventListener('click', openSettings);
+settingsClose.addEventListener('click', closeSettings);
+settingsSave.addEventListener('click', saveSettings);
+settingsModal.addEventListener('click', (e) => {
+  if (e.target === settingsModal) closeSettings();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !settingsModal.hidden) closeSettings();
+});
+
 const searchBtn = document.getElementById('searchBtn');
 const downloadAllBtn = document.getElementById('downloadAllBtn');
 const resultsBar = document.getElementById('resultsBar');
