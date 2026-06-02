@@ -13,7 +13,7 @@ Er zijn twee manieren om de app te gebruiken:
 
 ### Installeren (1 minuut)
 
-1. Vraag Dylan om het installatiebestand **`Playlist Downloader Setup x.x.x.exe`** (of download het van de afgesproken plek).
+1. Ga naar de **[releases-pagina](https://github.com/DylanHSO/playlist-downloader/releases/latest)** en download het installatiebestand **`Playlist-Downloader-Setup-x.x.x.exe`** onder "Assets".
 2. Dubbelklik het bestand.
 3. Krijg je een blauw **"Windows heeft je pc beschermd"**-scherm (SmartScreen)? Dat komt omdat de app niet ondertekend is. Klik **"Meer informatie"** → **"Toch uitvoeren"**.
 4. Kies eventueel een installatiemap en klik **Installeren**. Klaar — er staat nu een snelkoppeling **Playlist Downloader** in je Startmenu en op je bureaublad.
