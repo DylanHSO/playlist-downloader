@@ -1,4 +1,7 @@
-# CLAUDE.md
+# Agent Instructions
+
+> Gelezen door GitHub Copilot (via `.github/copilot-instructions.md`), Claude Code, en andere AI-assistenten.
+> De UI en alle gebruikerstekst zijn in het **Nederlands** — nieuwe strings, labels en foutmeldingen ook.
 
 Guidance for working in this repository. The UI and all user-facing text are in **Dutch** — keep new strings, labels, and error messages in Dutch to match.
 
