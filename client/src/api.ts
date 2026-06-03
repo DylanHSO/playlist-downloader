@@ -1,4 +1,4 @@
-import type { Result, ChannelHit, AlbumHit, Settings, Bitrate } from './types';
+import type { Result, ChannelHit, AlbumHit, Settings, Bitrate, TrackMeta } from './types';
 
 // Kleine fetch-helper: POST JSON, gooi de server-foutmelding door als Error.
 async function postJson<T>(url: string, body: unknown): Promise<T> {
@@ -40,7 +40,7 @@ export function searchAlbums(query: string): Promise<{ albums: AlbumHit[] }> {
 
 export function albumTracks(
   albumId: string | number
-): Promise<{ album: unknown; tracks: { artist: string; title: string }[] }> {
+): Promise<{ album: { title: string; artist: string; year: number | null }; tracks: { artist: string; title: string }[] }> {
   return postJson('/api/album-tracks', { albumId });
 }
 
@@ -53,8 +53,8 @@ export function saveSettings(discogsToken: string): Promise<{ discogsConfigured:
   return postJson('/api/settings', { discogsToken });
 }
 
-export function startDownload(videoId: string, bitrate: Bitrate): Promise<{ jobId: string }> {
-  return postJson('/api/download', { videoId, bitrate });
+export function startDownload(videoId: string, bitrate: Bitrate, meta?: TrackMeta, title?: string): Promise<{ jobId: string }> {
+  return postJson('/api/download', { videoId, bitrate, meta, title });
 }
 
 export interface JobStatus {

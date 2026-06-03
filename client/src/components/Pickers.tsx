@@ -42,7 +42,7 @@ export function AlbumPicker({
   onPick,
 }: {
   albums: AlbumHit[];
-  onPick: (id: string | number) => void;
+  onPick: (hit: AlbumHit) => void;
 }) {
   return (
     <section className="channel-picker-section">
@@ -63,7 +63,7 @@ export function AlbumPicker({
                 {a.format || ''}
               </div>
             </div>
-            <button className="btn btn-primary btn-sm" onClick={() => onPick(a.id)}>
+            <button className="btn btn-primary btn-sm" onClick={() => onPick(a)}>
               Kies
             </button>
           </div>

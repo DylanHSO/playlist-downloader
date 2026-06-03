@@ -177,11 +177,11 @@ export default function App() {
     }
   }
 
-  async function pickAlbum(albumId: string | number) {
+  async function pickAlbum(hit: AlbumHit) {
     setAlbums(null);
     setStatus('Tracklist ophalen van Discogs...');
     try {
-      const { tracks } = await api.albumTracks(albumId);
+      const { album, tracks } = await api.albumTracks(hit.id);
       const lines = tracks.map((t) => `${t.artist} - ${t.title}`).join('\n');
       setSongsText(lines);
       setTab('songs');
@@ -190,7 +190,18 @@ export default function App() {
       const queries = tracks.map((t) => `${t.artist} - ${t.title}`);
       setStatus(`Zoeken naar ${queries.length} nummer${queries.length !== 1 ? 's' : ''}...`);
       const data = await api.searchSongs(queries);
-      applyResults(data);
+      // OUT2: hecht Discogs-metadata aan elk resultaat zodat de download ID3-tags kan schrijven.
+      const dataWithMeta = data.map((r, i) => ({
+        ...r,
+        meta: {
+          title: tracks[i]?.title,
+          artist: tracks[i]?.artist,
+          album: album.title,
+          year: album.year ?? undefined,
+          coverUrl: hit.thumbnail ?? undefined,
+        },
+      }));
+      applyResults(dataWithMeta);
       setStatus('');
     } catch (err) {
       setStatus(`Fout bij ophalen tracklist: ${(err as Error).message}`);

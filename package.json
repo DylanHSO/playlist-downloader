@@ -5,6 +5,7 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently -k -n server,client -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "predev": "node scripts/predev.mjs",
     "dev:server": "tsx watch server/index.ts",
     "dev:client": "vite",
     "build": "npm run build:server && npm run build:client",
@@ -25,6 +26,7 @@
     "archiver": "^7.0.1",
     "dotenv": "^17.4.2",
     "express": "^4.18.2",
+    "node-id3": "^0.2.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "yt-dlp-exec": "^1.0.2",

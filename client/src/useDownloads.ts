@@ -53,7 +53,7 @@ export function useDownloads(results: Result[]) {
 
       update(index, { status: 'downloading', progress: 0 });
       try {
-        const { jobId } = await startDownload(r.videoId, bitrate);
+        const { jobId } = await startDownload(r.videoId, bitrate, r.meta, r.title ?? undefined);
         const done = await pollJob(jobId, (pct) => update(index, { progress: pct }));
         return done;
       } catch (err) {

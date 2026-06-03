@@ -27,6 +27,8 @@ export interface Result {
   // Frontend-only: de volledige keuzelijst (primair eerst) + de actieve keuze.
   candidates?: Candidate[];
   candidateIndex?: number;
+  // OUT2: ID3-metadata voor de download (Album-tab levert dit via Discogs).
+  meta?: TrackMeta;
 }
 
 export interface ChannelHit {
@@ -60,3 +62,12 @@ export interface DownloadState {
 }
 
 export type Bitrate = '128K' | '192K' | '320K';
+
+// OUT2: metadata voor ID3-tags
+export interface TrackMeta {
+  title?: string;
+  artist?: string;
+  album?: string;
+  year?: number;
+  coverUrl?: string;
+}

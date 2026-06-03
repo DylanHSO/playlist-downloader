@@ -3,6 +3,7 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import ytSearch from 'yt-search';
 import ytDlpExec from 'yt-dlp-exec';
 import archiver from 'archiver';
+import NodeID3 from 'node-id3';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -198,6 +199,65 @@ export function cleanDiscogsName(name: string | undefined | null): string {
   return (name || '').replace(/\s*\(\d+\)\s*$/, '').trim();
 }
 
+// ── ID3-tags (OUT2) ───────────────────────────────────────────────────────
+
+export interface TrackMeta {
+  title?: string;
+  artist?: string;
+  album?: string;
+  year?: number;
+  coverUrl?: string;
+}
+
+// Alleen https?:// URLs zijn toegestaan als cover-bron (voorkomt SSRF).
+function isSafeUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' || u.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+async function writeId3Tags(filePath: string, meta: TrackMeta): Promise<void> {
+  const tags: NodeID3.Tags = {};
+  if (meta.title) tags.title = meta.title;
+  if (meta.artist) tags.artist = meta.artist;
+  if (meta.album) tags.album = meta.album;
+  if (meta.year) tags.year = String(meta.year);
+
+  if (meta.coverUrl && isSafeUrl(meta.coverUrl)) {
+    try {
+      const resp = await fetch(meta.coverUrl);
+      if (resp.ok) {
+        const buf = Buffer.from(await resp.arrayBuffer());
+        const mime = resp.headers.get('content-type') || 'image/jpeg';
+        tags.image = {
+          mime,
+          type: { id: 3, name: 'front cover' },
+          description: 'Cover',
+          imageBuffer: buf,
+        };
+      }
+    } catch {
+      // Cover art is optioneel; doorgaan zonder bij een fout.
+    }
+  }
+
+  NodeID3.write(tags, filePath);
+}
+
+// Maakt een string veilig als Windows-bestandsnaam.
+export function sanitizeFilename(name: string): string {
+  return name
+    .replace(/[\\/:*?"<>|]/g, '_') // verboden Windows-tekens
+    .replace(/\s+/g, ' ')            // meerdere spaties → één
+    .trim()
+    .replace(/\.+$/, '')             // trailing punten
+    .slice(0, 200)                    // max lengte
+    || 'download';                    // fallback als alles wegvalt
+}
+
 // Een kanaal-root-URL (bijv. https://www.youtube.com/@Sefa of /channel/UC...)
 // laat yt-dlp de *tabbladen* (Videos/Shorts/Live) als entries teruggeven i.p.v.
 // de echte video's. Wijs daarom expliciet naar het Videos-tabblad, tenzij de
@@ -256,7 +316,7 @@ const jobs = new Map<string, Job>();
 // ZIP-bundels (OUT1)
 const zips = new Map<string, { jobId: string; path: string; name: string }[]>();
 
-async function runDownload(videoId: string, jobId: string, bitrate = '192K'): Promise<void> {
+async function runDownload(videoId: string, jobId: string, bitrate = '192K', meta?: TrackMeta, title?: string): Promise<void> {
   const url = `https://www.youtube.com/watch?v=${videoId}`;
   const job = jobs.get(jobId);
   if (!job) return;
@@ -290,8 +350,26 @@ async function runDownload(videoId: string, jobId: string, bitrate = '192K'): Pr
     const mp3 = files.find((f) => f.endsWith('.mp3'));
     if (!mp3) throw new Error('MP3 niet gevonden na conversie');
 
-    job.file = path.join(jobDir, mp3);
-    job.filename = mp3;
+    let mp3Path = path.join(jobDir, mp3);
+
+    // Hernoem naar de bekende titel als het bestand een lelijke naam heeft
+    // (bijv. UUID of lege naam door mislukte %(title)s expansie).
+    const wantedBase = title ? sanitizeFilename(title) : null;
+    if (wantedBase) {
+      const wantedPath = path.join(jobDir, `${wantedBase}.mp3`);
+      if (mp3Path !== wantedPath) {
+        fs.renameSync(mp3Path, wantedPath);
+        mp3Path = wantedPath;
+      }
+    }
+
+    // OUT2: schrijf ID3-tags als metadata is meegestuurd.
+    if (meta && Object.keys(meta).length > 0) {
+      await writeId3Tags(mp3Path, meta);
+    }
+
+    job.file = mp3Path;
+    job.filename = path.basename(mp3Path);
     job.status = 'done';
     job.progress = 100;
   } catch (err) {
@@ -541,14 +619,28 @@ export function createApp() {
 
   // Start a download job — returns jobId immediately
   app.post('/api/download', (req: Request, res: Response) => {
-    const { videoId, bitrate } = req.body;
+    const { videoId, bitrate, meta, title } = req.body;
     if (!videoId) return res.status(400).json({ error: 'videoId ontbreekt' });
 
     const jobId = randomUUID();
     jobs.set(jobId, { status: 'pending', progress: 0, error: null, file: null, filename: null });
     res.json({ jobId });
 
-    runDownload(videoId, jobId, normalizeBitrate(bitrate));
+    const safeTitle = typeof title === 'string' ? title.slice(0, 500) : undefined;
+
+    // OUT2: meta wordt gevalideerd en doorgegeven aan runDownload.
+    const safeMeta: TrackMeta | undefined =
+      meta && typeof meta === 'object'
+        ? {
+            title: typeof meta.title === 'string' ? meta.title.slice(0, 500) : undefined,
+            artist: typeof meta.artist === 'string' ? meta.artist.slice(0, 500) : undefined,
+            album: typeof meta.album === 'string' ? meta.album.slice(0, 500) : undefined,
+            year: typeof meta.year === 'number' && meta.year > 0 ? Math.trunc(meta.year) : undefined,
+            coverUrl: typeof meta.coverUrl === 'string' ? meta.coverUrl.slice(0, 2000) : undefined,
+          }
+        : undefined;
+
+    runDownload(videoId, jobId, normalizeBitrate(bitrate), safeMeta, safeTitle);
   });
 
   // Poll job status
