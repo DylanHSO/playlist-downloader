@@ -130,6 +130,63 @@ export function mapEntriesToVideos(
     }));
 }
 
+// ── Zoek-kandidaten (RB1/RB2: trefzekerheid) ─────────────────────────────
+// yt-search levert een lijst video's; we geven niet langer blind videos[0]
+// terug maar de top-N bruikbare kandidaten, zodat de gebruiker kan wisselen
+// (RB1) en Shorts (<30s) er automatisch uit vallen (RB2).
+
+// Ruwe vorm van een yt-search-video (loose upstream data).
+export interface SearchVideo {
+  videoId?: string;
+  title?: string;
+  url?: string;
+  timestamp?: string;
+  seconds?: number;
+  thumbnail?: string;
+  author?: { name?: string };
+}
+
+export interface Candidate {
+  videoId: string;
+  title: string;
+  url: string;
+  duration: string | null;
+  thumbnail: string;
+  channel: string;
+}
+
+const MAX_CANDIDATES = 3;
+
+function mapSearchVideo(v: SearchVideo): Candidate {
+  return {
+    videoId: v.videoId!,
+    title: v.title || 'Onbekende titel',
+    url: v.url || `https://www.youtube.com/watch?v=${v.videoId}`,
+    duration: v.timestamp || null,
+    thumbnail: v.thumbnail || `https://i.ytimg.com/vi/${v.videoId}/default.jpg`,
+    channel: v.author?.name || '',
+  };
+}
+
+// Filtert Shorts (<30s) eruit (RB2) en geeft de top-N kandidaten terug (RB1).
+// Video's met onbekende duur blijven behouden (we kunnen ze niet beoordelen).
+export function pickCandidates(videos: SearchVideo[] | undefined, max = MAX_CANDIDATES): Candidate[] {
+  return (videos || [])
+    .filter((v) => Boolean(v.videoId))
+    .filter((v) => !(typeof v.seconds === 'number' && isFinite(v.seconds) && v.seconds < MIN_DURATION_SECS))
+    .slice(0, max)
+    .map(mapSearchVideo);
+}
+
+// Alternatieve zoekterm voor de auto-retry (RB2). Maakt de query specifieker
+// richting de officiële audio; geeft dezelfde query terug als die al specifiek
+// genoeg is, zodat de caller een zinloze tweede zoekopdracht kan overslaan.
+export function retryQuery(query: string): string {
+  const q = query.trim();
+  if (/\b(audio|official|lyrics?)\b/i.test(q)) return q;
+  return `${q} official audio`;
+}
+
 // Allowed MP3 bitrates (QW1). Falls back to 192K for anything unexpected.
 const ALLOWED_BITRATES = new Set(['128K', '192K', '320K']);
 export function normalizeBitrate(value: unknown): string {
@@ -280,19 +337,16 @@ export function createApp() {
     const results = await Promise.all(
       queries.map(async (query: string) => {
         try {
-          const r = await ytSearch(query);
-          const v = r.videos[0];
-          if (!v) return { query, found: false };
-          return {
-            query,
-            found: true,
-            videoId: v.videoId,
-            title: v.title,
-            url: v.url,
-            duration: v.timestamp,
-            thumbnail: v.thumbnail,
-            channel: v.author?.name,
-          };
+          // RB1/RB2: top-3 kandidaten, Shorts eruit gefilterd.
+          let candidates = pickCandidates((await ytSearch(query)).videos);
+          // RB2: niets bruikbaars? Eén auto-retry met een specifiekere term.
+          if (!candidates.length) {
+            const alt = retryQuery(query);
+            if (alt !== query) candidates = pickCandidates((await ytSearch(alt)).videos);
+          }
+          if (!candidates.length) return { query, found: false };
+          const [primary, ...alternatives] = candidates;
+          return { query, found: true, ...primary, alternatives };
         } catch {
           return { query, found: false, error: 'Zoekfout' };
         }

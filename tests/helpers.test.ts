@@ -7,6 +7,8 @@ import {
   formatDuration,
   mapEntriesToVideos,
   normalizeBitrate,
+  pickCandidates,
+  retryQuery,
   unpacked,
   MIN_DURATION_SECS,
   MAX_DURATION_SECS,
@@ -132,6 +134,51 @@ describe('mapEntriesToVideos', () => {
     const [video] = mapEntriesToVideos([{ id: 'x' }], '', 'Uit playlist');
     expect(video.title).toBe('Onbekende titel');
     expect(video.source).toBe(null);
+  });
+});
+
+describe('pickCandidates', () => {
+  it('filtert Shorts (<30s) en geeft max 3 kandidaten terug', () => {
+    const out = pickCandidates([
+      { videoId: 'a', title: 'A', seconds: 200 },
+      { videoId: 'short', title: 'Short', seconds: 12 }, // Short → eruit
+      { videoId: 'b', title: 'B', seconds: 240 },
+      { videoId: 'c', title: 'C' }, // onbekende duur → behouden
+      { videoId: 'd', title: 'D', seconds: 180 }, // valt buiten top-3
+    ]);
+    expect(out.map((c) => c.videoId)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('slaat entries zonder videoId over en vult defaults in', () => {
+    const [c] = pickCandidates([{ title: 'Geen id' }, { videoId: 'x' }]);
+    expect(c).toMatchObject({
+      videoId: 'x',
+      title: 'Onbekende titel',
+      url: 'https://www.youtube.com/watch?v=x',
+      duration: null,
+      channel: '',
+    });
+  });
+
+  it('respecteert een eigen max en gaat om met undefined', () => {
+    expect(pickCandidates(undefined)).toEqual([]);
+    expect(
+      pickCandidates([{ videoId: '1' }, { videoId: '2' }], 1).map((c) => c.videoId)
+    ).toEqual(['1']);
+  });
+});
+
+describe('retryQuery', () => {
+  it('maakt een kale query specifieker', () => {
+    expect(retryQuery('Taylor Swift - Shake It Off')).toBe(
+      'Taylor Swift - Shake It Off official audio'
+    );
+  });
+
+  it('laat een al-specifieke query ongemoeid', () => {
+    expect(retryQuery('Adele - Hello (official audio)')).toBe('Adele - Hello (official audio)');
+    expect(retryQuery('Song lyrics')).toBe('Song lyrics');
+    expect(retryQuery('  Trimmed  ')).toBe('Trimmed official audio');
   });
 });
 

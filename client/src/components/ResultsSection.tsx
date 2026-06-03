@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Bitrate, DownloadState, Result } from '../types';
 import { BATCH_SIZES, BATCH_UI_THRESHOLD, batchRanges } from '../batch';
 
@@ -15,6 +15,7 @@ interface Props {
   onAsZip: (v: boolean) => void;
   onBatchSize: (n: number) => void;
   onSelectRange: (from: number, to: number) => void;
+  onChooseAlternative: (index: number, candidateIndex: number) => void;
   onDownloadOne: (index: number) => void;
   onDownloadSelected: () => void;
 }
@@ -25,6 +26,7 @@ function ResultCard({
   checked,
   state,
   onToggle,
+  onChooseAlternative,
   onDownloadOne,
 }: {
   r: Result;
@@ -32,8 +34,10 @@ function ResultCard({
   checked: boolean;
   state: DownloadState | undefined;
   onToggle: (index: number) => void;
+  onChooseAlternative: (index: number, candidateIndex: number) => void;
   onDownloadOne: (index: number) => void;
 }) {
+  const [showAlts, setShowAlts] = useState(false);
   if (!r.found) {
     return (
       <div className="result-card not-found">
@@ -48,6 +52,10 @@ function ResultCard({
   const status = state?.status ?? 'idle';
   const showProgress = status === 'downloading' || status === 'done';
   const pct = state?.progress ?? 0;
+
+  // RB1: extra kandidaten om uit te kiezen (alleen zinvol vóór de download).
+  const candidates = r.candidates;
+  const hasAlts = !!candidates && candidates.length > 1;
 
   let btnClass = 'btn btn-sm btn-download';
   let btnLabel = '⇓ MP3';
@@ -99,7 +107,45 @@ function ResultCard({
           >
             {btnLabel}
           </button>
+          {hasAlts && (
+            <button
+              type="button"
+              className="btn btn-sm btn-alt"
+              disabled={status !== 'idle'}
+              aria-expanded={showAlts}
+              onClick={() => setShowAlts((v) => !v)}
+            >
+              🔄 Ander resultaat ({candidates!.length})
+            </button>
+          )}
         </div>
+        {hasAlts && showAlts && (
+          <div className="alternatives">
+            {candidates!.map((c, ci) => (
+              <button
+                key={`${c.videoId}-${ci}`}
+                type="button"
+                className={`alt-option${ci === r.candidateIndex ? ' alt-option-active' : ''}`}
+                onClick={() => {
+                  onChooseAlternative(index, ci);
+                  setShowAlts(false);
+                }}
+              >
+                <span className="alt-mark">{ci === r.candidateIndex ? '●' : '○'}</span>
+                <img className="alt-thumb" src={c.thumbnail} alt="" loading="lazy" />
+                <span className="alt-info">
+                  <span className="alt-title" title={c.title}>
+                    {c.title}
+                  </span>
+                  <span className="alt-meta">
+                    {c.channel}
+                    {c.duration ? ` · ${c.duration}` : ''}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
         {showProgress && (
           <div className="progress-wrap">
             <div className="progress-bar">
@@ -228,6 +274,7 @@ export function ResultsSection(props: Props) {
             checked={selected.has(i)}
             state={states[i]}
             onToggle={props.onToggle}
+            onChooseAlternative={props.onChooseAlternative}
             onDownloadOne={props.onDownloadOne}
           />
         ))}
