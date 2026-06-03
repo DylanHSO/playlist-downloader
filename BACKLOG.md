@@ -35,8 +35,8 @@ Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-03**. Iteratie 1 ✅ afgero
 
 | ID | Status | Verbetering | Compl. | Toelichting |
 |----|:--:|---------|:--:|----|
-| UX1 | ⬜ | ZIP-download standaard uitgevinkt | S | `asZip` in [useDownloads/App] nu default `true` → zet naar `false` (en de checkbox in de results-bar). |
-| UX2 | ⬜ | Default bitrate = hoogste (320K) | S | Default staat nu op 192K (`bitrate`-state + `selected` option). Zet de standaard op **320 kbps**. |
+| UX1 | ✅ | ZIP-download standaard uitgevinkt | S | `asZip`-state in `App.tsx` op default `false`. |
+| UX2 | ✅ | Default bitrate = hoogste (320K) | S | `bitrate`-state in `App.tsx` op default `320K`; de results-bar-select volgt die state. |
 
 ## 📋 Backlog — later, volgorde nog te bepalen
 
