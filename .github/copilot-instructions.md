@@ -76,12 +76,12 @@ npm run dist       # build + Windows NSIS installer → release/
 - Real yt-dlp/ffmpeg spawning is NOT tested — tests stop at job-creation boundary
 
 ## Git & release workflow
-- **BEFORE writing any code**: create the feature branch first — `git checkout -b feature/<naam>` — then implement. Never commit code changes directly on `main`.
-- Feature branches: `feature/<naam>` → PR to `main`
+- **BEFORE writing any code**: create the feature branch first — `git checkout -b feature/<name>` — then implement. Never commit code changes directly on `main`.
+- Feature branches: `feature/<name>` → PR to `main`
 - Commit messages: **Dutch**, conventional prefixes (`feat:`, `refactor:`, `docs:`, `chore:`)
 - Before pushing: `npm run typecheck` + `npm test` must be green
 - Releases: bump `package.json` + `package-lock.json` version, `npm run dist`, tag `vX.Y.Z`, `gh release create`
-- Latest release: **v0.3.0** — HANDLEIDING link points at `/releases/latest`
+- Latest release: **v0.3.0** — guide link points at `/releases/latest`
 
 ## Backlog
-See `BACKLOG.md` for prioritized feature list. Feature IDs (QW1, OUT1, …) appear in code comments.
+See `BACKLOG.md` for the feature history. All planned items are complete. Feature IDs (QW1, OUT1, …) appear in code comments.
