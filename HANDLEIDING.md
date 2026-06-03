@@ -1,100 +1,101 @@
-# Handleiding — Playlist Downloader
+# User & Developer Guide — Playlist Downloader
 
-Een lokale app om een lijst nummers als MP3 te downloaden via YouTube. Alles draait op je eigen laptop — geen cloud, geen account.
+A local app that downloads a list of songs as MP3 files via YouTube. Everything runs on your own machine — no cloud, no account required.
 
-Er zijn twee manieren om de app te gebruiken:
+There are two ways to use the app:
 
-- **Voor gebruikers** — installeer de kant-en-klare app (`.exe`). Geen Node, geen Python, niks technisch.
-- **Voor ontwikkelaars** — draai de broncode met Node, of bouw zelf een nieuwe `.exe`.
+- **For end users** — install the ready-to-use app (`.exe`). No Node, no Python, nothing technical.
+- **For developers** — run the source code with Node, or build a new `.exe` yourself.
 
 ---
 
-## Voor gebruikers — de app installeren
+## For end users — installing the app
 
-### Installeren (1 minuut)
+### Installation (1 minute)
 
-1. Ga naar de **[releases-pagina](https://github.com/DylanHSO/playlist-downloader/releases/latest)** en download het installatiebestand **`Playlist-Downloader-Setup-x.x.x.exe`** onder "Assets".
-2. Dubbelklik het bestand.
-3. Krijg je een blauw **"Windows heeft je pc beschermd"**-scherm (SmartScreen)? Dat komt omdat de app niet ondertekend is. Klik **"Meer informatie"** → **"Toch uitvoeren"**.
-4. Kies eventueel een installatiemap en klik **Installeren**. Klaar — er staat nu een snelkoppeling **Playlist Downloader** in je Startmenu en op je bureaublad.
+1. Go to the **[releases page](https://github.com/DylanHSO/playlist-downloader/releases/latest)** and download the installer **`Playlist-Downloader-Setup-x.x.x.exe`** under "Assets".
+2. Double-click the file.
+3. If you see a blue **"Windows protected your PC"** SmartScreen dialog — this appears because the app is not code-signed. Click **"More info"** → **"Run anyway"**.
+4. Choose an installation folder if desired and click **Install**. Done — a **Playlist Downloader** shortcut will appear in your Start Menu and on your Desktop.
 
-### Gebruiken
+### Usage
 
-1. Open **Playlist Downloader** (Startmenu of bureaublad). Er opent één venster — geen browser nodig.
-2. Plak je lijst in het tekstvak, één regel per nummer als `Artiest - Nummer`. Bijvoorbeeld:
+1. Open **Playlist Downloader** (Start Menu or Desktop). A single window opens — no browser needed.
+2. Paste your list into the text area, one track per line in the format `Artist - Title`. For example:
    ```
    Taylor Swift - Shake It Off
    Volbeat - Lola Montez
    Metallica - Nothing Else Matters
    ```
-   Je kunt ook een `.txt`-bestand in het tekstvak slepen.
-3. Klik op **🔍 Zoek nummer(s)**.
-4. Kies je kwaliteit (bitrate) en of je alles als één **ZIP** wil. Klik per nummer op **⬇ MP3**, of in één keer op **Download alles**.
-5. Windows vraagt waar je het bestand wil opslaan.
+   You can also drag and drop a `.txt` file onto the text area.
+3. Click **🔍 Search track(s)**.
+4. Choose your quality (bitrate) and whether you want everything as a single **ZIP**. Click **⬇ MP3** per track, or **Download all** in one go.
+5. Windows will ask where to save the file.
 
-Naast de songs-lijst zijn er tabs voor een heel **kanaal**, een **album** (tracklist via Discogs) en een **YouTube-playlist**.
+In addition to the songs list, there are tabs for an entire **channel**, an **album** (tracklist via Discogs), and a **YouTube playlist**.
 
-### Album-tab aanzetten (Discogs-token)
+### Enabling the Album tab (Discogs token)
 
-De Album-tab haalt tracklists op via de Discogs API. Dat vereist een gratis, persoonlijke token:
+The Album tab fetches tracklists via the Discogs API, which requires a free personal token:
 
-1. Maak een gratis account op **https://www.discogs.com/** (als je die nog niet hebt).
-2. Ga naar **https://www.discogs.com/settings/developers** → **"Generate new token"** en kopieer de reeks.
-3. Klik in de app rechtsboven op **⚙️** (Instellingen), plak je token en klik **Opslaan**.
+1. Create a free account at **https://www.discogs.com/** (if you don't have one already).
+2. Go to **https://www.discogs.com/settings/developers** → **"Generate new token"** and copy the string.
+3. In the app, click **⚙️** (Settings) in the top-right corner, paste your token, and click **Save**.
 
-De token wordt lokaal op jouw computer bewaard en blijft bewaard na updates. Zonder token werken de songs-, kanaal- en playlist-tabs gewoon; alleen de Album-tab geeft dan een nette melding.
+The token is stored locally on your machine and persists across updates. Without a token the Songs, Channel, and Playlist tabs work fine; the Album tab will show a clear message instead.
 
 ---
 
-## Voor ontwikkelaars
+## For developers
 
-### Broncode draaien
+### Running from source
 
-Vereist **Node.js 18+** (https://nodejs.org/, LTS). De app is geschreven in **TypeScript** met een **React + Vite**-frontend en een **Express**-server.
+Requires **Node.js 18+** (https://nodejs.org/, LTS). The app is written in **TypeScript** with a **React + Vite** frontend and an **Express** server.
 
 ```
 npm install
 npm run dev
 ```
 
-`npm run dev` start Vite (frontend) op **http://localhost:5173** met hot reload en de server op poort 3000; open **http://localhost:5173**. Wil je de productie-build draaien zoals de gebruiker 'm krijgt, dan bouwt `npm start` alles en serveert het op **http://localhost:3000**.
+`npm run dev` starts Vite (frontend) on **http://localhost:5173** with hot reload and the server on port 3000; open **http://localhost:5173**. To run a production build as the end user would see it, `npm start` builds everything and serves it on **http://localhost:3000**.
 
-In dev kun je de Discogs-token ook via een `.env`-bestand zetten (`DISCOGS_TOKEN=...`); die heeft dan voorrang en is niet via de ⚙️-instellingen te wijzigen.
+In dev mode you can also set the Discogs token via a `.env` file (`DISCOGS_TOKEN=...`); this takes precedence and cannot be changed via the ⚙️ Settings UI.
 
-Handige scripts:
+Useful scripts:
 
-| Script | Doet |
+| Script | Does |
 |---|---|
-| `npm run dev` | Vite + server met hot reload (dev-loop). |
-| `npm start` | Bouwt en draait de productie-server op poort 3000. |
-| `npm run build` | Compileert server (tsc) en frontend (vite) naar `dist/`. |
-| `npm test` | Draait de tests (Vitest unit + supertest API). |
-| `npm run typecheck` | TypeScript-typecheck zonder te bouwen. |
+| `npm run dev` | Vite + server with hot reload (dev loop). |
+| `npm start` | Builds and runs the production server on port 3000. |
+| `npm run build` | Compiles server (tsc) and frontend (vite) into `dist/`. |
+| `npm test` | Runs the tests (Vitest unit + supertest API). |
+| `npm run typecheck` | TypeScript type-check without building. |
 
-### Een `.exe` bouwen
+### Building the `.exe`
 
 ```
 npm install
 npm run dist
 ```
 
-De NSIS-installer komt in de map **`release/`** te staan (`Playlist Downloader Setup x.x.x.exe`). yt-dlp en ffmpeg worden automatisch meegebundeld — de eindgebruiker hoeft niets extra's te installeren.
+The NSIS installer will be placed in the **`release/`** folder (`Playlist Downloader Setup x.x.x.exe`). yt-dlp and ffmpeg are bundled automatically — end users do not need to install anything extra.
 
-> De build is niet code-signed; eindgebruikers krijgen daarom eenmalig een SmartScreen-melding (zie hierboven). Code signing kan later toegevoegd worden met een certificaat.
+> The build is not code-signed; end users will therefore see a one-time SmartScreen warning (see above). Code signing can be added later with a certificate.
 >
-> In de build-config staat `signAndEditExecutable: false`. Dat slaat de `winCodeSign`/`rcedit`-stap over (die op Windows zonder Developer Mode of admin-rechten faalt op symlink-extractie). Gevolg: de app gebruikt voorlopig het standaard Electron-icoon. Wil je een eigen icoon? Zet een `build/icon.ico` neer, schakel `signAndEditExecutable` weer in en bouw vanuit een terminal met admin-rechten (of met Windows Developer Mode aan).
+> The build config sets `signAndEditExecutable: false`. This skips the `winCodeSign`/`rcedit` step (which fails on Windows without Developer Mode or admin rights due to symlink extraction). As a result the app currently uses the default Electron icon. To use a custom icon: place a `build/icon.ico` file, re-enable `signAndEditExecutable`, and build from a terminal with admin rights (or with Windows Developer Mode enabled).
 
 ---
 
-## Iets werkt niet?
+## Troubleshooting
 
-| Probleem | Oplossing |
+| Problem | Solution |
 |---|---|
-| "Windows heeft je pc beschermd" bij installeren | Normaal voor een niet-ondertekende app. Klik "Meer informatie" → "Toch uitvoeren". |
-| De app opent niet / scherm blijft leeg | Sluit 'm volledig af (ook in de taakbalk) en start opnieuw. |
-| YouTube vindt een nummer niet | Probeer een specifiekere zoekterm, bijv. `Artiest - Nummer (Official Audio)`. |
-| "Sign in to confirm you're not a bot" | YouTube vermoedt een bot. Stuur Dylan een berichtje, dan helpt 'ie met een cookie-bestand. |
-| "Discogs is niet geconfigureerd" | Token ontbreekt. Klik op ⚙️ en plak je Discogs-token (zie hierboven). |
-| (ontwikkelaar) `Cannot find module ...` | Draai `npm install` opnieuw. |
+| "Windows protected your PC" when installing | Normal for an unsigned app. Click "More info" → "Run anyway". |
+| App does not open / screen stays blank | Close it completely (including from the taskbar) and restart. |
+| YouTube cannot find a track | Try a more specific search term, e.g. `Artist - Title (Official Audio)`. |
+| "Sign in to confirm you're not a bot" | YouTube suspects a bot. Reach out to Dylan — he can help with a cookie file. |
+| "Discogs is not configured" | Token is missing. Click ⚙️ and paste your Discogs token (see above). |
+| (developer) `Cannot find module ...` | Run `npm install` again. |
 
-Vragen? Stuur Dylan een berichtje.
+Questions? Send Dylan a message.
+

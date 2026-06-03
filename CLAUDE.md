@@ -1,9 +1,9 @@
 # Agent Instructions
 
-> Gelezen door GitHub Copilot (via `.github/copilot-instructions.md`), Claude Code, en andere AI-assistenten.
-> De UI en alle gebruikerstekst zijn in het **Nederlands** — nieuwe strings, labels en foutmeldingen ook.
+> Read by GitHub Copilot (via `.github/copilot-instructions.md`), Claude Code, and other AI assistants.
+> The app UI and all user-facing text are in **Dutch** — keep new strings, labels, and error messages in Dutch to match.
 
-Guidance for working in this repository. The UI and all user-facing text are in **Dutch** — keep new strings, labels, and error messages in Dutch to match.
+Guidance for working in this repository. The app UI and all user-facing text are in **Dutch** — keep new strings, labels, and error messages in Dutch to match.
 
 ## What this is
 
@@ -95,13 +95,13 @@ npm run dist       # build, then the Windows NSIS installer into release/
   2. `npm run dist` → `release/Playlist Downloader Setup <versie>.exe` (NSIS, not code-signed).
   3. Commit the bump, tag `vX.Y.Z`, push `main` + the tag.
   4. `gh release create vX.Y.Z "release/Playlist Downloader Setup <versie>.exe" --title "vX.Y.Z" --notes "..." --latest`.
-- `gh` CLI is installed and authenticated (account **DylanHSO**, `repo` scope). The `release/`-folder asset keeps spaces in its name; that's fine for upload. Latest release at time of writing: **v0.2.0**. The HANDLEIDING download link points at `/releases/latest`, so it auto-tracks the newest release.
+- Latest release at time of writing: **v0.3.0**. The guide download link points at `/releases/latest`, so it auto-tracks the newest release.
 
 ## Roadmap
 
-Prioritized backlog lives in [BACKLOG.md](BACKLOG.md). Iteration 1 (configurable bitrate, parallel downloads, `.txt` drag-and-drop, duration filter, ZIP) and the Electron build (DST1) are done. Feature IDs (QW1, OUT1, …) appear in code comments to tie code back to backlog items.
+Prioritized backlog lives in [BACKLOG.md](BACKLOG.md). All planned features are complete. Feature IDs (QW1, OUT1, …) appear in code comments to tie code back to backlog items.
 
 ## Docs
 
-- [HANDLEIDING.md](HANDLEIDING.md) — Dutch end-user + developer manual (install, usage, troubleshooting, building the exe).
+- [HANDLEIDING.md](HANDLEIDING.md) — End-user and developer guide (install, usage, troubleshooting, building the exe).
 - The `.exe` is distributed via GitHub Releases, **not** committed to the repo.
