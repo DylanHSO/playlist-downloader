@@ -76,6 +76,7 @@ npm run dist       # build + Windows NSIS installer → release/
 - Real yt-dlp/ffmpeg spawning is NOT tested — tests stop at job-creation boundary
 
 ## Git & release workflow
+- **BEFORE writing any code**: create the feature branch first — `git checkout -b feature/<naam>` — then implement. Never commit code changes directly on `main`.
 - Feature branches: `feature/<naam>` → PR to `main`
 - Commit messages: **Dutch**, conventional prefixes (`feat:`, `refactor:`, `docs:`, `chore:`)
 - Before pushing: `npm run typecheck` + `npm test` must be green

@@ -88,7 +88,7 @@ npm run dist       # build, then the Windows NSIS installer into release/
 
 ## Git & release workflow
 
-- **Branching** — non-trivial changes go on a `feature/<naam>` branch; commit, push, and open a PR against `main` (`gh pr create`). Small doc/backlog tweaks may go straight to `main`. Never commit build output (`dist/`, `release/` are gitignored).
+- **Branching** — **Create the feature branch before writing any code**: `git checkout -b feature/<naam>`. All non-trivial code changes go on a feature branch; push and open a PR against `main` (`gh pr create`). Never implement changes on `main` first and move them to a branch afterwards. Small doc/backlog-only tweaks (no code changes) may go straight to `main`. Never commit build output (`dist/`, `release/` are gitignored).
 - **Commits** — messages in Dutch with conventional prefixes (`feat:`, `refactor:`, `docs:`, `chore:`, …). Before pushing a code change: `npm run typecheck` + `npm test` green.
 - **Releases (for user-facing/larger changes)** — the Windows `.exe` ships via **GitHub Releases**, never in the repo. Cut a release with:
   1. Bump `version` in **package.json** + **package-lock.json** (root entries only — lines 3 & 9; a version tag, once used, is taken).
