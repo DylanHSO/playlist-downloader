@@ -141,6 +141,35 @@ export function cleanDiscogsName(name: string | undefined | null): string {
   return (name || '').replace(/\s*\(\d+\)\s*$/, '').trim();
 }
 
+// Een kanaal-root-URL (bijv. https://www.youtube.com/@Sefa of /channel/UC...)
+// laat yt-dlp de *tabbladen* (Videos/Shorts/Live) als entries teruggeven i.p.v.
+// de echte video's. Wijs daarom expliciet naar het Videos-tabblad, tenzij de
+// URL al een tab/segment bevat dat we moeten respecteren.
+const CHANNEL_TABS = new Set([
+  'videos',
+  'shorts',
+  'streams',
+  'live',
+  'featured',
+  'playlists',
+  'community',
+  'channels',
+  'about',
+  'releases',
+  'podcasts',
+  'store',
+]);
+
+export function channelVideosUrl(url: string): string {
+  const trimmed = url.trim();
+  // Splits eventuele query/hash eraf, normaliseer trailing slash.
+  const [base, rest = ''] = trimmed.split(/(?=[?#])/, 2) as [string, string?];
+  const clean = base.replace(/\/+$/, '');
+  const lastSegment = clean.split('/').pop()?.toLowerCase() ?? '';
+  if (CHANNEL_TABS.has(lastSegment)) return trimmed; // al een tab → laat staan
+  return `${clean}/videos${rest}`;
+}
+
 // List all videos from a YouTube channel or playlist URL via yt-dlp flat-playlist.
 async function enumerateYouTubeUrl(url: string): Promise<any> {
   // yt-dlp-exec auto-parses JSON when stdout starts with `{`.
@@ -310,7 +339,7 @@ export function createApp() {
       return res.status(400).json({ error: 'Geen kanaal-url opgegeven' });
     }
     try {
-      const data = await enumerateYouTubeUrl(channelUrl);
+      const data = await enumerateYouTubeUrl(channelVideosUrl(channelUrl));
       const sourceName = data.channel || data.uploader || '';
       const { kept, skipped } = filterByDuration(data.entries);
       const videos = mapEntriesToVideos(kept, sourceName, 'Uit kanaal');

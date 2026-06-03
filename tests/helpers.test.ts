@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import path from 'path';
 import {
+  channelVideosUrl,
   cleanDiscogsName,
   filterByDuration,
   formatDuration,
@@ -10,6 +11,43 @@ import {
   MIN_DURATION_SECS,
   MAX_DURATION_SECS,
 } from '../server/app';
+
+describe('channelVideosUrl', () => {
+  it('voegt /videos toe aan een handle- of channel-URL', () => {
+    expect(channelVideosUrl('https://www.youtube.com/@Sefa')).toBe(
+      'https://www.youtube.com/@Sefa/videos'
+    );
+    expect(channelVideosUrl('https://www.youtube.com/channel/UCabc123')).toBe(
+      'https://www.youtube.com/channel/UCabc123/videos'
+    );
+    expect(channelVideosUrl('https://www.youtube.com/c/SomeName')).toBe(
+      'https://www.youtube.com/c/SomeName/videos'
+    );
+  });
+
+  it('negeert een trailing slash', () => {
+    expect(channelVideosUrl('https://www.youtube.com/@Sefa/')).toBe(
+      'https://www.youtube.com/@Sefa/videos'
+    );
+  });
+
+  it('laat een URL die al een tab bevat ongemoeid', () => {
+    const u = 'https://www.youtube.com/@Sefa/videos';
+    expect(channelVideosUrl(u)).toBe(u);
+    expect(channelVideosUrl('https://www.youtube.com/@Sefa/shorts')).toBe(
+      'https://www.youtube.com/@Sefa/shorts'
+    );
+    expect(channelVideosUrl('https://www.youtube.com/@Sefa/streams')).toBe(
+      'https://www.youtube.com/@Sefa/streams'
+    );
+  });
+
+  it('behoudt query/hash bij het toevoegen van /videos', () => {
+    expect(channelVideosUrl('https://www.youtube.com/@Sefa?foo=bar')).toBe(
+      'https://www.youtube.com/@Sefa/videos?foo=bar'
+    );
+  });
+});
 
 describe('normalizeBitrate', () => {
   it('accepteert toegestane bitrates', () => {
