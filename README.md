@@ -23,7 +23,7 @@ Download the latest installer from the [Releases page](https://github.com/DylanH
 
 > **Note:** The app is not code-signed. Windows will show a SmartScreen dialog on first run — click **"More info"** → **"Run anyway"**.
 
-For full installation and usage instructions see [HANDLEIDING.md](HANDLEIDING.md).
+For full installation and usage instructions see [GUIDE.md](GUIDE.md).
 
 ## Running from source
 

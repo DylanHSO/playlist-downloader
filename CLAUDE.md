@@ -84,7 +84,7 @@ npm run dist       # build, then the Windows NSIS installer into release/
 - Frontend download concurrency is capped at `DOWNLOAD_CONCURRENCY = 3` in [useDownloads.ts](client/src/useDownloads.ts).
 - A few `yt-dlp-exec` / Discogs response shapes are typed `any` on purpose (untyped/loose upstream data); pure helpers and the public surface are properly typed. Untyped packages are declared in [server/shims.d.ts](server/shims.d.ts).
 - Basic Auth middleware activates **only** when `APP_PASSWORD` is set (keeps local dev open); intended for if the server is ever exposed.
-- The build is **not** code-signed; `signAndEditExecutable: false` skips the rcedit/winCodeSign step (fails on Windows without admin/Developer Mode), so the packaged app uses the default Electron icon. See [HANDLEIDING.md](HANDLEIDING.md) for the full reasoning.
+- The build is **not** code-signed; `signAndEditExecutable: false` skips the rcedit/winCodeSign step (fails on Windows without admin/Developer Mode), so the packaged app uses the default Electron icon. See [GUIDE.md](GUIDE.md) for the full reasoning.
 
 ## Git & release workflow
 
@@ -103,5 +103,5 @@ Prioritized backlog lives in [BACKLOG.md](BACKLOG.md). All planned features are 
 
 ## Docs
 
-- [HANDLEIDING.md](HANDLEIDING.md) — End-user and developer guide (install, usage, troubleshooting, building the exe).
+- [GUIDE.md](GUIDE.md) — End-user and developer guide (install, usage, troubleshooting, building the exe).
 - The `.exe` is distributed via GitHub Releases, **not** committed to the repo.
