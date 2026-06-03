@@ -1,0 +1,17 @@
+{
+  "github.copilot.chat.codeGeneration.instructions": [
+    {
+      "file": ".github/copilot-instructions.md"
+    }
+  ],
+  "github.copilot.chat.reviewSelection.instructions": [
+    {
+      "text": "Controleer op: TypeScript-typefouten, ontbrekende Nederlandse foutmeldingen, onveilige invoerverwerking server-side, en schendingen van de bitrate-whitelist of downloadconcurrency."
+    }
+  ],
+  "github.copilot.chat.testGeneration.instructions": [
+    {
+      "text": "Schrijf Vitest-tests. Unit tests gaan in tests/helpers.test.ts (pure helpers), API tests in tests/api.test.ts (supertest op createApp()). Mock yt-search en global fetch. Test de yt-dlp/ffmpeg spawn NIET — stop bij de job-aanmaak grens."
+    }
+  ]
+}
