@@ -551,6 +551,47 @@ textarea:focus,
   cursor: pointer;
 }
 
+/* Batch-selectie met bereik-knoppen (SEL1) */
+.batch-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0 4px 8px;
+}
+
+.batch-size-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.batch-ranges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.btn-batch {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.btn-batch:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.btn-batch-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 /* Drag & drop van .txt op de songs-tab (QW3) */
 .label-hint {
   color: var(--text-muted);
