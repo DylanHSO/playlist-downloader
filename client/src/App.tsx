@@ -181,7 +181,7 @@ export default function App() {
     setAlbums(null);
     setStatus('Tracklist ophalen van Discogs...');
     try {
-      const { album, tracks } = await api.albumTracks(hit.id);
+      const { album, tracks } = await api.albumTracks(hit.id, hit.releaseType);
       const lines = tracks.map((t) => `${t.artist} - ${t.title}`).join('\n');
       setSongsText(lines);
       setTab('songs');

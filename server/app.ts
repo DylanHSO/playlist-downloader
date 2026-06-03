@@ -547,23 +547,38 @@ export function createApp() {
     }
 
     try {
-      const url = new URL('https://api.discogs.com/database/search');
-      url.searchParams.set('q', query);
-      url.searchParams.set('type', 'master');
-      url.searchParams.set('per_page', '5');
-      url.searchParams.set('token', token);
+      // IN1: zoek eerst op masters; val terug op releases voor compilations/live-albums zonder master.
+      const buildSearchUrl = (type: 'master' | 'release') => {
+        const u = new URL('https://api.discogs.com/database/search');
+        u.searchParams.set('q', query);
+        u.searchParams.set('type', type);
+        u.searchParams.set('per_page', '5');
+        u.searchParams.set('token', token);
+        return u;
+      };
 
-      const r = await fetch(url, { headers: { 'User-Agent': DISCOGS_UA } });
-      if (!r.ok) throw discogsError(r);
-      const data: any = await r.json();
+      const mapResults = (results: any[], releaseType: 'master' | 'release') =>
+        results.slice(0, 5).map((rel: any) => ({
+          id: releaseType === 'master' ? (rel.master_id || rel.id) : rel.id,
+          title: rel.title,
+          year: rel.year || null,
+          thumbnail: rel.cover_image || rel.thumb || null,
+          format: Array.isArray(rel.format) ? rel.format.join(', ') : null,
+          releaseType,
+        }));
 
-      const albums = (data.results || []).slice(0, 5).map((rel: any) => ({
-        id: rel.master_id || rel.id,
-        title: rel.title,
-        year: rel.year || null,
-        thumbnail: rel.cover_image || rel.thumb || null,
-        format: Array.isArray(rel.format) ? rel.format.join(', ') : null,
-      }));
+      const rMaster = await fetch(buildSearchUrl('master'), { headers: { 'User-Agent': DISCOGS_UA } });
+      if (!rMaster.ok) throw discogsError(rMaster);
+      const dataMaster: any = await rMaster.json();
+      let albums = mapResults(dataMaster.results || [], 'master');
+
+      // Geen masters gevonden → probeer gewone releases (compilaties, live-albums, …).
+      if (!albums.length) {
+        const rRelease = await fetch(buildSearchUrl('release'), { headers: { 'User-Agent': DISCOGS_UA } });
+        if (!rRelease.ok) throw discogsError(rRelease);
+        const dataRelease: any = await rRelease.json();
+        albums = mapResults(dataRelease.results || [], 'release');
+      }
 
       if (!albums.length) {
         return res.status(404).json({ error: 'Geen album gevonden op Discogs' });
@@ -576,17 +591,20 @@ export function createApp() {
     }
   });
 
-  // Discogs — fetch tracklist for a master release
+  // Discogs — fetch tracklist for a master or release
   app.post('/api/album-tracks', async (req: Request, res: Response) => {
     const token = getDiscogsToken();
     if (!token) {
       return res.status(503).json({ error: 'Discogs is niet geconfigureerd' });
     }
-    const { albumId } = req.body;
+    const { albumId, releaseType } = req.body;
     if (!albumId) return res.status(400).json({ error: 'albumId ontbreekt' });
 
+    // IN1: gebruik /releases/:id voor compilations/live-albums zonder master.
+    const type = releaseType === 'release' ? 'releases' : 'masters';
+
     try {
-      const url = `https://api.discogs.com/masters/${encodeURIComponent(albumId)}?token=${encodeURIComponent(token)}`;
+      const url = `https://api.discogs.com/${type}/${encodeURIComponent(albumId)}?token=${encodeURIComponent(token)}`;
       const r = await fetch(url, { headers: { 'User-Agent': DISCOGS_UA } });
       if (!r.ok) throw discogsError(r);
       const data: any = await r.json();

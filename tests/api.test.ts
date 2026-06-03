@@ -126,7 +126,7 @@ describe('POST /api/album-search met token', () => {
     delete process.env.DISCOGS_TOKEN;
   });
 
-  it('mapt Discogs-zoekresultaten', async () => {
+  it('mapt Discogs-zoekresultaten en geeft releaseType master terug', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({
@@ -140,7 +140,81 @@ describe('POST /api/album-search met token', () => {
     );
     const res = await request(app).post('/api/album-search').send({ query: 'volbeat' });
     expect(res.status).toBe(200);
-    expect(res.body.albums[0]).toMatchObject({ id: 42, title: 'Rewind, Replay, Rebound', format: 'CD, Album' });
+    expect(res.body.albums[0]).toMatchObject({ id: 42, title: 'Rewind, Replay, Rebound', format: 'CD, Album', releaseType: 'master' });
+  });
+
+  it('valt terug op releases als masters leeg zijn (IN1)', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ results: [] }) }) // master: leeg
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          results: [
+            { id: 99, title: 'Live at the BBC', year: 1994, cover_image: 'l.jpg', format: ['Vinyl'] },
+          ],
+        }),
+      }); // release: resultaat
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await request(app).post('/api/album-search').send({ query: 'live bbc' });
+    expect(res.status).toBe(200);
+    expect(res.body.albums[0]).toMatchObject({ id: 99, title: 'Live at the BBC', releaseType: 'release' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('geeft 404 als zowel masters als releases leeg zijn', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => ({ results: [] }) }))
+    );
+    const res = await request(app).post('/api/album-search').send({ query: 'onvindbaar' });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /api/album-tracks met token', () => {
+  beforeEach(() => {
+    process.env.DISCOGS_TOKEN = 'test-token';
+  });
+  afterEach(() => {
+    delete process.env.DISCOGS_TOKEN;
+  });
+
+  it('gebruikt /masters/:id als releaseType master is (IN1)', async () => {
+    let calledUrl = '';
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      calledUrl = String(url);
+      return {
+        ok: true,
+        json: async () => ({
+          title: 'Rewind', year: 2019,
+          artists: [{ name: 'Volbeat' }],
+          tracklist: [{ type_: 'track', title: 'Last Day Under The Sun', position: '1', duration: '4:23' }],
+        }),
+      };
+    }));
+    const res = await request(app).post('/api/album-tracks').send({ albumId: 42, releaseType: 'master' });
+    expect(res.status).toBe(200);
+    expect(calledUrl).toContain('/masters/42');
+    expect(res.body.tracks[0]).toMatchObject({ title: 'Last Day Under The Sun' });
+  });
+
+  it('gebruikt /releases/:id als releaseType release is (IN1)', async () => {
+    let calledUrl = '';
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      calledUrl = String(url);
+      return {
+        ok: true,
+        json: async () => ({
+          title: 'Live at the BBC', year: 1994,
+          artists: [{ name: 'Artiest' }],
+          tracklist: [{ type_: 'track', title: 'Track 1', position: '1', duration: '3:00' }],
+        }),
+      };
+    }));
+    const res = await request(app).post('/api/album-tracks').send({ albumId: 99, releaseType: 'release' });
+    expect(res.status).toBe(200);
+    expect(calledUrl).toContain('/releases/99');
+    expect(res.body.tracks[0]).toMatchObject({ title: 'Track 1' });
   });
 });
 

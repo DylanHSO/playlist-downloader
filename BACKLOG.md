@@ -1,6 +1,6 @@
 # Feature Backlog — YouTube Playlist Downloader
 
-Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-03**. Iteratie 1 ✅ afgerond. Iteratie 2 ✅ afgerond. SEL1 ✅ afgerond. OUT2 ✅ afgerond.
+Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-03**. Iteratie 1 ✅ afgerond. Iteratie 2 ✅ afgerond. SEL1 ✅ afgerond. OUT2 ✅ afgerond. IN1 ✅ afgerond.
 
 **Complexiteitsschaal:** `S` = paar uur · `M` = 1–2 dagen · `L` = meerdere dagen · `XL` = week+ en/of technisch risico.
 
@@ -43,7 +43,7 @@ Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-03**. Iteratie 1 ✅ afgero
 | ID | Status | Feature | Compl. | Toelichting |
 |----|:--:|---------|:--:|----|
 | OUT2 | ✅ | ID3-tags + cover art in MP3 | M | Titel/artiest/album/jaar/cover via `node-id3`. `TrackMeta` op `Result` in client; Album-tab hecht Discogs-metadata (incl. albumhoes) aan elk resultaat; server valideert meta en schrijft tags na conversie. |
-| IN1 | ⬜ | Discogs releases tonen (niet alleen masters) | S–M | Voor compilations/live-albums zonder master. Uitbreiding bestaande Discogs-calls. |
+| IN1 | ✅ | Discogs releases tonen (niet alleen masters) | S–M | Voor compilations/live-albums zonder master. `/api/album-search` valt terug op `type=release` als er geen masters gevonden zijn. `AlbumHit.releaseType` ('master'|'release') bepaalt of `/api/album-tracks` `/masters/:id` of `/releases/:id` aanroept. |
 | IN2 | ⬜ | Spotify-playlist-URL → YouTube-audio | M–L | Spotify API (client-credentials, dev-app + secret nodig). Tracklist ophalen, bestaande search hergebruiken. |
 | IN3 | ⬜ | Foto-upload → tracklist herkennen (vision) | L | Foto van hoes/tracklist → tekst via vision → matchen op YouTube. Nieuwe pipeline + AI-kosten. "Lijstfoto" past hier ook in. |
 | IN4 | ⬜ | Instagram koppelen & uitlezen | XL | Platen-posts → nummers. Geen vriendelijke officiële API; scrapen fragiel + ToS-risico. Bouwt op IN3 voor herkenning. |
