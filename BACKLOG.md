@@ -1,6 +1,6 @@
 # Feature Backlog — YouTube Playlist Downloader
 
-Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-03**. Iteratie 1 ✅ afgerond.
+Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-03**. Iteratie 1 ✅ afgerond. SEL1 ✅ afgerond.
 
 **Complexiteitsschaal:** `S` = paar uur · `M` = 1–2 dagen · `L` = meerdere dagen · `XL` = week+ en/of technisch risico.
 
@@ -29,7 +29,7 @@ Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-03**. Iteratie 1 ✅ afgero
 
 | ID | Status | Feature | Compl. | Toelichting |
 |----|:--:|---------|:--:|----|
-| SEL1 | ⬜ | Batch-selectie met bereik-knoppen | S–M | Download grote lijsten in batches i.p.v. alles tegelijk. **Instelbare batchgrootte** (25/50/100, default 50). **Bereik-knoppen** (`1–50`, `51–100`, …) die de selectie precies op die batch zetten. Geldt voor de tabs **Songs**, **Kanaal** en **Playlist** (niet Album — die zijn klein). Bouwt voort op de bestaande checkbox-selectie + `DOWNLOAD_CONCURRENCY`; werkt samen met de "Alles"-checkbox en de ZIP-toggle. |
+| SEL1 | ✅ | Batch-selectie met bereik-knoppen | S–M | Instelbare batchgrootte (25/50/100, default 50) + bereik-knoppen (`1–50`, `51–100`, …) die de selectie precies op die batch zetten. Pure helper in [client/src/batch.ts](client/src/batch.ts) (`batchRanges`, getest); batch-bar in [ResultsSection.tsx](client/src/components/ResultsSection.tsx). Verschijnt alleen bij >25 gevonden rijen, dus kleine lijsten (incl. Album → Songs) blijven schoon. Werkt samen met de "Alles"-checkbox en de ZIP-toggle. |
 
 ## 🔧 Kleine verbeteringen (quick fixes)
 

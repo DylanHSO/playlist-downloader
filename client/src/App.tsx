@@ -6,6 +6,7 @@ import { useDownloads } from './useDownloads';
 import { SettingsModal } from './components/SettingsModal';
 import { AlbumPicker, ChannelPicker } from './components/Pickers';
 import { ResultsSection } from './components/ResultsSection';
+import { DEFAULT_BATCH_SIZE } from './batch';
 
 const TABS: { id: TabName; label: string }[] = [
   { id: 'songs', label: '🎵 Songs' },
@@ -43,6 +44,7 @@ export default function App() {
 
   const [bitrate, setBitrate] = useState<Bitrate>('320K'); // UX2: hoogste kwaliteit als default
   const [asZip, setAsZip] = useState(false); // UX1: ZIP standaard uit
+  const [batchSize, setBatchSize] = useState<number>(DEFAULT_BATCH_SIZE); // SEL1
 
   const downloads = useDownloads(results);
 
@@ -223,6 +225,13 @@ export default function App() {
     setSelected(new Set(found));
   }
 
+  // SEL1: zet de selectie precies op één batch. `from`/`to` zijn 0-based,
+  // half-open posities in de gevonden-rijen (niet de ruwe results-index).
+  function selectRange(from: number, to: number) {
+    const found = results.map((r, i) => (r.found ? i : -1)).filter((i) => i >= 0);
+    setSelected(new Set(found.slice(from, to)));
+  }
+
   return (
     <>
       <header className="hero">
@@ -389,10 +398,13 @@ export default function App() {
             states={downloads.states}
             bitrate={bitrate}
             asZip={asZip}
+            batchSize={batchSize}
             onToggle={toggleSelect}
             onToggleAll={toggleSelectAll}
             onBitrate={setBitrate}
             onAsZip={setAsZip}
+            onBatchSize={setBatchSize}
+            onSelectRange={selectRange}
             onDownloadOne={(i) => downloads.downloadOne(i, bitrate)}
             onDownloadSelected={() =>
               downloads.downloadSelected([...selected].sort((a, b) => a - b), bitrate, asZip, setStatus)

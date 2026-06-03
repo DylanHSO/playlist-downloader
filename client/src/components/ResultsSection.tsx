@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Bitrate, DownloadState, Result } from '../types';
+import { BATCH_SIZES, BATCH_UI_THRESHOLD, batchRanges } from '../batch';
 
 interface Props {
   results: Result[];
@@ -7,10 +8,13 @@ interface Props {
   states: Record<number, DownloadState>;
   bitrate: Bitrate;
   asZip: boolean;
+  batchSize: number;
   onToggle: (index: number) => void;
   onToggleAll: (checked: boolean) => void;
   onBitrate: (b: Bitrate) => void;
   onAsZip: (v: boolean) => void;
+  onBatchSize: (n: number) => void;
+  onSelectRange: (from: number, to: number) => void;
   onDownloadOne: (index: number) => void;
   onDownloadSelected: () => void;
 }
@@ -128,6 +132,15 @@ export function ResultsSection(props: Props) {
   else if (checkedCount === foundIndices.length) downloadLabel = `⬇ Download alles (${checkedCount})`;
   else downloadLabel = `⬇ Download selectie (${checkedCount})`;
 
+  // SEL1: batch-bereiken. Alleen tonen bij grote lijsten — kleine lijsten
+  // (zoals de Album-tab die in de Songs-tab landt) blijven zo schoon.
+  const showBatch = foundIndices.length > BATCH_UI_THRESHOLD;
+  const ranges = batchRanges(foundIndices.length, props.batchSize);
+  const rangeActive = (from: number, to: number) => {
+    const slice = foundIndices.slice(from, to);
+    return slice.length === checkedCount && slice.every((i) => selected.has(i));
+  };
+
   return (
     <section className="results-section">
       {foundIndices.length > 0 && (
@@ -169,6 +182,41 @@ export function ResultsSection(props: Props) {
           >
             {downloadLabel}
           </button>
+        </div>
+      )}
+      {showBatch && (
+        <div className="batch-bar">
+          <label className="batch-size-label" htmlFor="batchSizeSelect">
+            Batchgrootte
+            <select
+              id="batchSizeSelect"
+              className="bitrate-select"
+              value={props.batchSize}
+              onChange={(e) => props.onBatchSize(Number(e.target.value))}
+            >
+              {BATCH_SIZES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+          {ranges.length > 1 && (
+            <div className="batch-ranges">
+              {ranges.map((r) => (
+                <button
+                  key={r.start}
+                  type="button"
+                  className={`btn btn-sm btn-batch${
+                    rangeActive(r.start - 1, r.end) ? ' btn-batch-active' : ''
+                  }`}
+                  onClick={() => props.onSelectRange(r.start - 1, r.end)}
+                >
+                  {r.start}–{r.end}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <div>
