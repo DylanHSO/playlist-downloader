@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "playlist-downloader",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["server.js"],
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsx", "server/index.ts"],
       "port": 3000
     }
   ]

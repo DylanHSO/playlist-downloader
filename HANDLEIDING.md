@@ -50,14 +50,26 @@ De token wordt lokaal op jouw computer bewaard en blijft bewaard na updates. Zon
 
 ### Broncode draaien
 
-Vereist **Node.js 18+** (https://nodejs.org/, LTS).
+Vereist **Node.js 18+** (https://nodejs.org/, LTS). De app is geschreven in **TypeScript** met een **React + Vite**-frontend en een **Express**-server.
 
 ```
 npm install
-npm start
+npm run dev
 ```
 
-Open daarna **http://localhost:3000** in je browser. In deze modus kun je de Discogs-token ook via een `.env`-bestand zetten (`DISCOGS_TOKEN=...`); die heeft dan voorrang en is niet via de ⚙️-instellingen te wijzigen.
+`npm run dev` start Vite (frontend) op **http://localhost:5173** met hot reload en de server op poort 3000; open **http://localhost:5173**. Wil je de productie-build draaien zoals de gebruiker 'm krijgt, dan bouwt `npm start` alles en serveert het op **http://localhost:3000**.
+
+In dev kun je de Discogs-token ook via een `.env`-bestand zetten (`DISCOGS_TOKEN=...`); die heeft dan voorrang en is niet via de ⚙️-instellingen te wijzigen.
+
+Handige scripts:
+
+| Script | Doet |
+|---|---|
+| `npm run dev` | Vite + server met hot reload (dev-loop). |
+| `npm start` | Bouwt en draait de productie-server op poort 3000. |
+| `npm run build` | Compileert server (tsc) en frontend (vite) naar `dist/`. |
+| `npm test` | Draait de tests (Vitest unit + supertest API). |
+| `npm run typecheck` | TypeScript-typecheck zonder te bouwen. |
 
 ### Een `.exe` bouwen
 
@@ -66,7 +78,7 @@ npm install
 npm run dist
 ```
 
-De NSIS-installer komt in de map **`dist/`** te staan (`Playlist Downloader Setup x.x.x.exe`). yt-dlp en ffmpeg worden automatisch meegebundeld — de eindgebruiker hoeft niets extra's te installeren.
+De NSIS-installer komt in de map **`release/`** te staan (`Playlist Downloader Setup x.x.x.exe`). yt-dlp en ffmpeg worden automatisch meegebundeld — de eindgebruiker hoeft niets extra's te installeren.
 
 > De build is niet code-signed; eindgebruikers krijgen daarom eenmalig een SmartScreen-melding (zie hierboven). Code signing kan later toegevoegd worden met een certificaat.
 >
