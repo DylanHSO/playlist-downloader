@@ -1,6 +1,6 @@
 {
   "name": "youtube-playlist-downloader",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Zoek YouTube-nummers op en download ze als MP3",
   "main": "electron/main.js",
   "scripts": {
