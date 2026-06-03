@@ -51,13 +51,45 @@ export default function App() {
   // Verse resultaten: alles aanvinken en download-state wissen.
   const applyResults = useCallback(
     (data: Result[]) => {
-      setResults(data);
-      const found = data.map((r, i) => (r.found ? i : -1)).filter((i) => i >= 0);
+      // RB1: bouw per gevonden nummer de keuzelijst (primair + alternatieven).
+      const prepared = data.map((r) =>
+        r.found && r.alternatives?.length
+          ? {
+              ...r,
+              candidates: [
+                {
+                  videoId: r.videoId!,
+                  title: r.title!,
+                  url: r.url!,
+                  duration: r.duration ?? null,
+                  thumbnail: r.thumbnail!,
+                  channel: r.channel ?? '',
+                },
+                ...r.alternatives,
+              ],
+              candidateIndex: 0,
+            }
+          : r
+      );
+      setResults(prepared);
+      const found = prepared.map((r, i) => (r.found ? i : -1)).filter((i) => i >= 0);
       setSelected(new Set(found));
       downloads.reset();
     },
     [downloads]
   );
+
+  // RB1: wissel het gekozen resultaat voor een nummer. De gekozen kandidaat
+  // wordt de getoonde rij; videoId verandert mee zodat de download klopt.
+  function chooseAlternative(index: number, candidateIndex: number) {
+    setResults((prev) =>
+      prev.map((r, i) =>
+        i === index && r.candidates?.[candidateIndex]
+          ? { ...r, ...r.candidates[candidateIndex], candidateIndex }
+          : r
+      )
+    );
+  }
 
   // Wissel tab: elke tab is z'n eigen workflow → reset gedeelde UI.
   function switchTab(name: TabName) {
@@ -405,6 +437,7 @@ export default function App() {
             onAsZip={setAsZip}
             onBatchSize={setBatchSize}
             onSelectRange={selectRange}
+            onChooseAlternative={chooseAlternative}
             onDownloadOne={(i) => downloads.downloadOne(i, bitrate)}
             onDownloadSelected={() =>
               downloads.downloadSelected([...selected].sort((a, b) => a - b), bitrate, asZip, setStatus)

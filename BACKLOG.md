@@ -1,6 +1,6 @@
 # Feature Backlog — YouTube Playlist Downloader
 
-Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-03**. Iteratie 1 ✅ afgerond. SEL1 ✅ afgerond.
+Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-03**. Iteratie 1 ✅ afgerond. Iteratie 2 ✅ afgerond. SEL1 ✅ afgerond.
 
 **Complexiteitsschaal:** `S` = paar uur · `M` = 1–2 dagen · `L` = meerdere dagen · `XL` = week+ en/of technisch risico.
 
@@ -22,8 +22,8 @@ Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-03**. Iteratie 1 ✅ afgero
 
 | ID | Status | Feature | Compl. | Toelichting |
 |----|:--:|---------|:--:|----|
-| RB1 | ⬜ | Top-3 alternatieven + wisselknop | M | Tegen lyric-/sped-up-/nightcore-hits. Search meerdere resultaten teruggeven + UI om te kiezen. |
-| RB2 | ⬜ | Auto-retry met andere zoekterm | M | Bij fail of <30s; sluit Shorts uit. Logica in search/download. |
+| RB1 | ✅ | Top-3 alternatieven + wisselknop | M | `/api/search` geeft per nummer de top-3 kandidaten terug (`pickCandidates`, getest). "🔄 Ander resultaat"-knop op de kaart klapt een lijstje met thumbnail/titel uit ([ResultsSection.tsx](client/src/components/ResultsSection.tsx)); kiezen wisselt de getoonde rij én de `videoId` voor de download (`chooseAlternative` in [App.tsx](client/src/App.tsx)). |
+| RB2 | ✅ | Auto-retry met andere zoekterm | M | Shorts (<30s) worden in `pickCandidates` weggefilterd; levert de eerste zoekopdracht niets bruikbaars op, dan één auto-retry met een specifiekere term (`retryQuery` → "… official audio", getest). Logica in `/api/search`. |
 
 ## 🎯 Iteratie 3 — Bulk-download
 

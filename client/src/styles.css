@@ -681,6 +681,91 @@ textarea.drag-over {
   flex-wrap: wrap;
 }
 
+/* RB1: kies een ander YouTube-resultaat (uitklap-lijstje) */
+.btn-alt {
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.btn-alt:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.alternatives {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 9px;
+  animation: fadeIn 0.18s ease;
+}
+
+.alt-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 9px;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.alt-option:hover {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.alt-option-active {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.alt-mark {
+  flex: none;
+  font-size: 0.7rem;
+  color: var(--accent);
+  width: 12px;
+  text-align: center;
+}
+
+.alt-thumb {
+  width: 56px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: var(--surface-2);
+}
+
+.alt-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.alt-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alt-meta {
+  font-size: 0.71rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ──────────────────────────────────────────────────────────
    Progress
    ────────────────────────────────────────────────────────── */

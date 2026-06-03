@@ -46,6 +46,33 @@ describe('POST /api/search', () => {
     const res = await request(app).post('/api/search').send({ queries: ['zzz onvindbaar'] });
     expect(res.body[0]).toEqual({ query: 'zzz onvindbaar', found: false });
   });
+
+  it('geeft alternatieven mee en filtert Shorts eruit (RB1/RB2)', async () => {
+    mockedYtSearch.mockResolvedValue({
+      videos: [
+        { videoId: 'main', title: 'Het nummer', seconds: 200, author: { name: 'Artiest' } },
+        { videoId: 'short', title: 'Sped Up', seconds: 12 }, // Short → eruit
+        { videoId: 'alt1', title: 'Lyric Video', seconds: 205 },
+        { videoId: 'alt2', title: 'Live', seconds: 240 },
+      ],
+    });
+    const res = await request(app).post('/api/search').send({ queries: ['iets'] });
+    expect(res.body[0]).toMatchObject({ found: true, videoId: 'main' });
+    expect(res.body[0].alternatives.map((c: { videoId: string }) => c.videoId)).toEqual([
+      'alt1',
+      'alt2',
+    ]);
+  });
+
+  it('doet een auto-retry met een andere zoekterm als de eerste niets oplevert (RB2)', async () => {
+    mockedYtSearch
+      .mockResolvedValueOnce({ videos: [] }) // eerste poging: niets
+      .mockResolvedValueOnce({ videos: [{ videoId: 'retry', title: 'Gevonden', seconds: 200 }] });
+    const res = await request(app).post('/api/search').send({ queries: ['obscuur nummer'] });
+    expect(mockedYtSearch).toHaveBeenCalledTimes(2);
+    expect(mockedYtSearch).toHaveBeenNthCalledWith(2, 'obscuur nummer official audio');
+    expect(res.body[0]).toMatchObject({ found: true, videoId: 'retry' });
+  });
 });
 
 describe('POST /api/channel-search', () => {

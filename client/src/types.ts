@@ -1,5 +1,15 @@
 export type TabName = 'songs' | 'channel' | 'album' | 'playlist';
 
+// Eén YouTube-kandidaat (RB1). De Songs-tab levert er meerdere per nummer.
+export interface Candidate {
+  videoId: string;
+  title: string;
+  url: string;
+  duration: string | null;
+  thumbnail: string;
+  channel: string;
+}
+
 // Eén zoekresultaat of opgehaalde video (de twee bronnen delen deze vorm).
 export interface Result {
   found: boolean;
@@ -12,6 +22,11 @@ export interface Result {
   channel?: string;
   source?: string | null;
   error?: string;
+  // RB1: extra kandidaten uit /api/search (Shorts al weggefilterd).
+  alternatives?: Candidate[];
+  // Frontend-only: de volledige keuzelijst (primair eerst) + de actieve keuze.
+  candidates?: Candidate[];
+  candidateIndex?: number;
 }
 
 export interface ChannelHit {
