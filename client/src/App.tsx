@@ -41,8 +41,8 @@ export default function App() {
   const [albums, setAlbums] = useState<AlbumHit[] | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
-  const [bitrate, setBitrate] = useState<Bitrate>('192K');
-  const [asZip, setAsZip] = useState(true);
+  const [bitrate, setBitrate] = useState<Bitrate>('320K'); // UX2: hoogste kwaliteit als default
+  const [asZip, setAsZip] = useState(false); // UX1: ZIP standaard uit
 
   const downloads = useDownloads(results);
 
