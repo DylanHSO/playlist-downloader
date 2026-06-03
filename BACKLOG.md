@@ -1,6 +1,6 @@
 # Feature Backlog — YouTube Playlist Downloader
 
-Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-02**. Iteratie 1 ✅ afgerond.
+Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-03**. Iteratie 1 ✅ afgerond.
 
 **Complexiteitsschaal:** `S` = paar uur · `M` = 1–2 dagen · `L` = meerdere dagen · `XL` = week+ en/of technisch risico.
 
@@ -24,6 +24,19 @@ Geprioriteerde roadmap. Laatst bijgewerkt: **2026-06-02**. Iteratie 1 ✅ afgero
 |----|:--:|---------|:--:|----|
 | RB1 | ⬜ | Top-3 alternatieven + wisselknop | M | Tegen lyric-/sped-up-/nightcore-hits. Search meerdere resultaten teruggeven + UI om te kiezen. |
 | RB2 | ⬜ | Auto-retry met andere zoekterm | M | Bij fail of <30s; sluit Shorts uit. Logica in search/download. |
+
+## 🎯 Iteratie 3 — Bulk-download
+
+| ID | Status | Feature | Compl. | Toelichting |
+|----|:--:|---------|:--:|----|
+| SEL1 | ⬜ | Batch-selectie met bereik-knoppen | S–M | Download grote lijsten in batches i.p.v. alles tegelijk. **Instelbare batchgrootte** (25/50/100, default 50). **Bereik-knoppen** (`1–50`, `51–100`, …) die de selectie precies op die batch zetten. Geldt voor de tabs **Songs**, **Kanaal** en **Playlist** (niet Album — die zijn klein). Bouwt voort op de bestaande checkbox-selectie + `DOWNLOAD_CONCURRENCY`; werkt samen met de "Alles"-checkbox en de ZIP-toggle. |
+
+## 🔧 Kleine verbeteringen (quick fixes)
+
+| ID | Status | Verbetering | Compl. | Toelichting |
+|----|:--:|---------|:--:|----|
+| UX1 | ⬜ | ZIP-download standaard uitgevinkt | S | `asZip` in [useDownloads/App] nu default `true` → zet naar `false` (en de checkbox in de results-bar). |
+| UX2 | ⬜ | Default bitrate = hoogste (320K) | S | Default staat nu op 192K (`bitrate`-state + `selected` option). Zet de standaard op **320 kbps**. |
 
 ## 📋 Backlog — later, volgorde nog te bepalen
 

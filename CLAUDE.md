@@ -83,6 +83,17 @@ npm run dist       # build, then the Windows NSIS installer into release/
 - Basic Auth middleware activates **only** when `APP_PASSWORD` is set (keeps local dev open); intended for if the server is ever exposed.
 - The build is **not** code-signed; `signAndEditExecutable: false` skips the rcedit/winCodeSign step (fails on Windows without admin/Developer Mode), so the packaged app uses the default Electron icon. See [HANDLEIDING.md](HANDLEIDING.md) for the full reasoning.
 
+## Git & release workflow
+
+- **Branching** — non-trivial changes go on a `feature/<naam>` branch; commit, push, and open a PR against `main` (`gh pr create`). Small doc/backlog tweaks may go straight to `main`. Never commit build output (`dist/`, `release/` are gitignored).
+- **Commits** — messages in Dutch with conventional prefixes (`feat:`, `refactor:`, `docs:`, `chore:`, …). Before pushing a code change: `npm run typecheck` + `npm test` green.
+- **Releases (for user-facing/larger changes)** — the Windows `.exe` ships via **GitHub Releases**, never in the repo. Cut a release with:
+  1. Bump `version` in **package.json** + **package-lock.json** (root entries only — lines 3 & 9; a version tag, once used, is taken).
+  2. `npm run dist` → `release/Playlist Downloader Setup <versie>.exe` (NSIS, not code-signed).
+  3. Commit the bump, tag `vX.Y.Z`, push `main` + the tag.
+  4. `gh release create vX.Y.Z "release/Playlist Downloader Setup <versie>.exe" --title "vX.Y.Z" --notes "..." --latest`.
+- `gh` CLI is installed and authenticated (account **DylanHSO**, `repo` scope). The `release/`-folder asset keeps spaces in its name; that's fine for upload. Latest release at time of writing: **v0.2.0**. The HANDLEIDING download link points at `/releases/latest`, so it auto-tracks the newest release.
+
 ## Roadmap
 
 Prioritized backlog lives in [BACKLOG.md](BACKLOG.md). Iteration 1 (configurable bitrate, parallel downloads, `.txt` drag-and-drop, duration filter, ZIP) and the Electron build (DST1) are done. Feature IDs (QW1, OUT1, …) appear in code comments to tie code back to backlog items.
