@@ -7,7 +7,8 @@ const path = require('path');
 // zodat ze een her-installatie/update overleven.
 process.env.APP_CONFIG_DIR = app.getPath('userData');
 
-const { start } = require('../server');
+// De server is TypeScript en wordt gecompileerd naar dist/server/.
+const { start } = require('../dist/server/app');
 
 let mainWindow = null;
 let serverPort = null;

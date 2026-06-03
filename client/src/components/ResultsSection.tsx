@@ -1,0 +1,189 @@
+import { useEffect, useRef } from 'react';
+import type { Bitrate, DownloadState, Result } from '../types';
+
+interface Props {
+  results: Result[];
+  selected: Set<number>;
+  states: Record<number, DownloadState>;
+  bitrate: Bitrate;
+  asZip: boolean;
+  onToggle: (index: number) => void;
+  onToggleAll: (checked: boolean) => void;
+  onBitrate: (b: Bitrate) => void;
+  onAsZip: (v: boolean) => void;
+  onDownloadOne: (index: number) => void;
+  onDownloadSelected: () => void;
+}
+
+function ResultCard({
+  r,
+  index,
+  checked,
+  state,
+  onToggle,
+  onDownloadOne,
+}: {
+  r: Result;
+  index: number;
+  checked: boolean;
+  state: DownloadState | undefined;
+  onToggle: (index: number) => void;
+  onDownloadOne: (index: number) => void;
+}) {
+  if (!r.found) {
+    return (
+      <div className="result-card not-found">
+        <div className="result-info">
+          <div className="result-title">❌ Niet gevonden</div>
+          <div className="result-query">{r.query || ''}</div>
+        </div>
+      </div>
+    );
+  }
+
+  const status = state?.status ?? 'idle';
+  const showProgress = status === 'downloading' || status === 'done';
+  const pct = state?.progress ?? 0;
+
+  let btnClass = 'btn btn-sm btn-download';
+  let btnLabel = '⇓ MP3';
+  if (status === 'downloading') btnLabel = '⏳ Bezig...';
+  else if (status === 'done') {
+    btnClass = 'btn btn-sm btn-done';
+    btnLabel = state?.label || '✓ Gedownload';
+  } else if (status === 'error') {
+    btnClass = 'btn btn-sm btn-error';
+    btnLabel = state?.label || '✗ Fout';
+  }
+
+  return (
+    <div className="result-card" style={{ '--i': index } as React.CSSProperties}>
+      <input
+        type="checkbox"
+        className="result-checkbox"
+        checked={checked}
+        onChange={() => onToggle(index)}
+        aria-label="Selecteer voor download"
+      />
+      <img className="thumbnail" src={r.thumbnail} alt="" loading="lazy" />
+      <div className="result-info">
+        <div className="result-title" title={r.title}>
+          {r.title}
+        </div>
+        <div className="result-meta">
+          {r.channel || ''}
+          {r.duration ? ` · ${r.duration}` : ''}
+        </div>
+        {r.source ? (
+          <div className="result-query">📺 {r.source}</div>
+        ) : r.query ? (
+          <div className="result-query">🔍 {r.query}</div>
+        ) : null}
+        <div className="result-actions">
+          <a
+            className="btn btn-sm btn-youtube"
+            href={r.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ▶ YouTube
+          </a>
+          <button
+            className={btnClass}
+            disabled={status === 'downloading' || status === 'done'}
+            onClick={() => onDownloadOne(index)}
+          >
+            {btnLabel}
+          </button>
+        </div>
+        {showProgress && (
+          <div className="progress-wrap">
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${pct}%` }} />
+            </div>
+            <span className="progress-pct">{Math.round(pct)}%</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function ResultsSection(props: Props) {
+  const { results, selected, states } = props;
+  const foundIndices = results.map((r, i) => (r.found ? i : -1)).filter((i) => i >= 0);
+  const checkedCount = foundIndices.filter((i) => selected.has(i)).length;
+  const allChecked = foundIndices.length > 0 && checkedCount === foundIndices.length;
+
+  // Indeterminate-state van de "Alles"-checkbox.
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = checkedCount > 0 && !allChecked;
+    }
+  }, [checkedCount, allChecked]);
+
+  let downloadLabel = '⬇ Download alles';
+  if (checkedCount === 0) downloadLabel = 'Niets geselecteerd';
+  else if (checkedCount === foundIndices.length) downloadLabel = `⬇ Download alles (${checkedCount})`;
+  else downloadLabel = `⬇ Download selectie (${checkedCount})`;
+
+  return (
+    <section className="results-section">
+      {foundIndices.length > 0 && (
+        <div className="results-bar">
+          <label className="select-all-label">
+            <input
+              ref={selectAllRef}
+              type="checkbox"
+              checked={allChecked}
+              onChange={(e) => props.onToggleAll(e.target.checked)}
+            />
+            <span>Alles</span>
+          </label>
+          <label className="bitrate-label" htmlFor="bitrateSelect">
+            Kwaliteit
+            <select
+              id="bitrateSelect"
+              className="bitrate-select"
+              value={props.bitrate}
+              onChange={(e) => props.onBitrate(e.target.value as Bitrate)}
+            >
+              <option value="128K">128 kbps</option>
+              <option value="192K">192 kbps</option>
+              <option value="320K">320 kbps</option>
+            </select>
+          </label>
+          <label className="zip-label" title="Bundel de selectie in één ZIP-bestand">
+            <input
+              type="checkbox"
+              checked={props.asZip}
+              onChange={(e) => props.onAsZip(e.target.checked)}
+            />
+            <span>Als ZIP</span>
+          </label>
+          <button
+            className="btn btn-success"
+            disabled={checkedCount === 0}
+            onClick={props.onDownloadSelected}
+          >
+            {downloadLabel}
+          </button>
+        </div>
+      )}
+      <div>
+        {results.map((r, i) => (
+          <ResultCard
+            key={i}
+            r={r}
+            index={i}
+            checked={selected.has(i)}
+            state={states[i]}
+            onToggle={props.onToggle}
+            onDownloadOne={props.onDownloadOne}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
