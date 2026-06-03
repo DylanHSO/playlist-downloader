@@ -46,6 +46,8 @@ export interface AlbumHit {
   year: number | null;
   thumbnail: string | null;
   format: string | null;
+  // IN1: onderscheid tussen master en release voor compilations/live-albums zonder master.
+  releaseType: 'master' | 'release';
 }
 
 export interface Settings {

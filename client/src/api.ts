@@ -39,9 +39,10 @@ export function searchAlbums(query: string): Promise<{ albums: AlbumHit[] }> {
 }
 
 export function albumTracks(
-  albumId: string | number
+  albumId: string | number,
+  releaseType: 'master' | 'release' = 'master'
 ): Promise<{ album: { title: string; artist: string; year: number | null }; tracks: { artist: string; title: string }[] }> {
-  return postJson('/api/album-tracks', { albumId });
+  return postJson('/api/album-tracks', { albumId, releaseType });
 }
 
 export async function getSettings(): Promise<Settings> {
