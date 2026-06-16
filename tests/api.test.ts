@@ -116,6 +116,11 @@ describe('Discogs endpoints zonder token', () => {
     const res = await request(app).post('/api/album-tracks').send({ albumId: 1 });
     expect(res.status).toBe(503);
   });
+
+  it('discogs-collection geeft 503', async () => {
+    const res = await request(app).post('/api/discogs-collection').send({ userInput: 'iemand' });
+    expect(res.status).toBe(503);
+  });
 });
 
 describe('POST /api/album-search met token', () => {
@@ -215,6 +220,97 @@ describe('POST /api/album-tracks met token', () => {
     expect(res.status).toBe(200);
     expect(calledUrl).toContain('/releases/99');
     expect(res.body.tracks[0]).toMatchObject({ title: 'Track 1' });
+  });
+});
+
+describe('POST /api/discogs-collection met token', () => {
+  beforeEach(() => {
+    process.env.DISCOGS_TOKEN = 'test-token';
+  });
+  afterEach(() => {
+    delete process.env.DISCOGS_TOKEN;
+  });
+
+  it('geeft 400 zonder gebruikersnaam of link', async () => {
+    const res = await request(app).post('/api/discogs-collection').send({ userInput: '   ' });
+    expect(res.status).toBe(400);
+  });
+
+  it('haalt een enkele pagina op en geeft pagination terug', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        pagination: { pages: 2, items: 150 },
+        releases: [
+          {
+            basic_information: {
+              id: 1,
+              title: 'Album A',
+              year: 2001,
+              artists: [{ name: 'Artiest (2)' }],
+              cover_image: 'a.jpg',
+              formats: [{ name: 'Vinyl' }],
+            },
+          },
+          {
+            basic_information: {
+              id: 2,
+              title: 'Album B',
+              year: 2002,
+              artists: [{ name: 'Band' }],
+              thumb: 'b.jpg',
+              formats: [{ name: 'CD' }, { name: 'Album' }],
+            },
+          },
+        ],
+      }),
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await request(app)
+      .post('/api/discogs-collection')
+      .send({ userInput: 'BackByDopeDemand030', page: 1, perPage: 100 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.username).toBe('BackByDopeDemand030');
+    expect(res.body.page).toBe(1);
+    expect(res.body.perPage).toBe(100);
+    expect(res.body.totalPages).toBe(2);
+    expect(res.body.totalItems).toBe(150);
+    expect(res.body.albums).toHaveLength(2);
+    expect(res.body.albums[0]).toMatchObject({
+      id: 1,
+      title: 'Artiest - Album A',
+      format: 'Vinyl',
+      releaseType: 'release',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('page=1');
+  });
+
+  it('accepteert ook een Discogs-collectie-URL als invoer', async () => {
+    let calledUrl = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        calledUrl = String(url);
+        return {
+          ok: true,
+          json: async () => ({
+            pagination: { pages: 1 },
+            releases: [{ basic_information: { id: 9, title: 'X' } }],
+          }),
+        };
+      })
+    );
+
+    const res = await request(app)
+      .post('/api/discogs-collection')
+      .send({ userInput: 'https://www.discogs.com/user/BackByDopeDemand030/collection?header=1' });
+
+    expect(res.status).toBe(200);
+    expect(calledUrl).toContain('/users/BackByDopeDemand030/collection/folders/0/releases');
   });
 });
 
