@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { AlbumHit, Bitrate, ChannelHit, Result, TabName } from './types';
 import * as api from './api';
 import { useTheme } from './useTheme';
@@ -31,6 +31,7 @@ export default function App() {
   const [songsText, setSongsText] = useState('');
   const [channelQuery, setChannelQuery] = useState('');
   const [albumQuery, setAlbumQuery] = useState('');
+  const [collectionInput, setCollectionInput] = useState('');
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [dragOver, setDragOver] = useState(false);
 
@@ -41,12 +42,29 @@ export default function App() {
   const [channels, setChannels] = useState<ChannelHit[] | null>(null);
   const [albums, setAlbums] = useState<AlbumHit[] | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [collectionUser, setCollectionUser] = useState<string | null>(null);
+  const [autoDownloadCollection, setAutoDownloadCollection] = useState(false);
 
   const [bitrate, setBitrate] = useState<Bitrate>('320K'); // UX2: hoogste kwaliteit als default
   const [asZip, setAsZip] = useState(false); // UX1: ZIP standaard uit
   const [batchSize, setBatchSize] = useState<number>(DEFAULT_BATCH_SIZE); // SEL1
 
   const downloads = useDownloads(results);
+
+  useEffect(() => {
+    if (!autoDownloadCollection) return;
+    // One-shot trigger: direct uitzetten voorkomt render-loops.
+    setAutoDownloadCollection(false);
+    const indices = results.map((r, i) => (r.found ? i : -1)).filter((i) => i >= 0);
+    if (!indices.length) {
+      setStatus('Geen downloadbare nummers gevonden in de collectie.');
+      return;
+    }
+    setStatus(`Start download van ${indices.length} nummer${indices.length !== 1 ? 's' : ''} uit de collectie...`);
+    downloads
+      .downloadSelected(indices, bitrate, true, setStatus)
+      .catch((err) => setStatus(`Fout bij collectie-download: ${(err as Error).message}`));
+  }, [autoDownloadCollection, results, bitrate, downloads.downloadSelected]);
 
   // Verse resultaten: alles aanvinken en download-state wissen.
   const applyResults = useCallback(
@@ -97,6 +115,7 @@ export default function App() {
     setResults([]);
     setChannels(null);
     setAlbums(null);
+    setCollectionUser(null);
     setStatus('');
   }
 
@@ -172,6 +191,99 @@ export default function App() {
       setStatus('');
     } catch (err) {
       setStatus(`Fout bij album zoeken: ${(err as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function loadDiscogsCollection() {
+    const input = collectionInput.trim();
+    if (!input) return;
+    setBusy('album');
+    clearTransient();
+    setCollectionUser(null);
+    setStatus('Discogs-collectie wordt ingelezen...');
+    try {
+      const first = await api.discogsCollection(input, 1, 100);
+      const all = [...first.albums];
+      const seen = new Set(all.map((a) => String(a.id)));
+
+      for (let page = 2; page <= first.totalPages; page++) {
+        setStatus(`Discogs-collectie inlezen: pagina ${page}/${first.totalPages}...`);
+        const next = await api.discogsCollection(input, page, 100);
+        for (const a of next.albums) {
+          const id = String(a.id);
+          if (seen.has(id)) continue;
+          seen.add(id);
+          all.push(a);
+        }
+      }
+
+      setAlbums(all);
+      setCollectionUser(first.username);
+      setStatus(`${all.length} release${all.length !== 1 ? 's' : ''} gevonden in collectie van ${first.username}.`);
+    } catch (err) {
+      setStatus(`Fout bij collectie uitlezen: ${(err as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function downloadWholeCollection() {
+    if (!albums?.length) return;
+    setBusy('album');
+    clearTransient();
+    setStatus('Tracklists van de collectie ophalen...');
+    const collected: Result[] = [];
+
+    try {
+      for (let i = 0; i < albums.length; i++) {
+        const hit = albums[i];
+        setStatus(`Collectie verwerken: release ${i + 1}/${albums.length}...`);
+
+        let albumData: { title: string; artist: string; year: number | null };
+        let tracks: { artist: string; title: string }[];
+        try {
+          const out = await api.albumTracks(hit.id, hit.releaseType);
+          albumData = out.album;
+          tracks = out.tracks;
+        } catch {
+          continue;
+        }
+
+        const queries = tracks.map((t) => `${t.artist} - ${t.title}`);
+        if (!queries.length) continue;
+
+        let data: Result[];
+        try {
+          data = await api.searchSongs(queries);
+        } catch {
+          continue;
+        }
+
+        const withMeta = data.map((r, ti) => ({
+          ...r,
+          meta: {
+            title: tracks[ti]?.title,
+            artist: tracks[ti]?.artist,
+            album: albumData.title,
+            year: albumData.year ?? undefined,
+            coverUrl: hit.thumbnail ?? undefined,
+          },
+        }));
+        collected.push(...withMeta);
+      }
+
+      if (!collected.length) {
+        setStatus('Geen downloadbare tracks gevonden in de collectie.');
+        return;
+      }
+
+      applyResults(collected);
+      setAsZip(true);
+      setAutoDownloadCollection(true);
+    } catch (err) {
+      setStatus(`Fout bij collectie-download: ${(err as Error).message}`);
     } finally {
       setBusy(null);
     }
@@ -400,6 +512,25 @@ export default function App() {
                   {busy === 'album' ? '⏳ Zoeken...' : '🔍 Zoek album'}
                 </button>
               </div>
+
+              <label htmlFor="collectionInput" style={{ marginTop: 14 }}>
+                Of lees een volledige Discogs-collectie uit (gebruikersnaam of collectie-link)
+              </label>
+              <div className="actions">
+                <input
+                  id="collectionInput"
+                  type="text"
+                  className="channel-input"
+                  placeholder="bijv. BackByDopeDemand030 of https://www.discogs.com/user/.../collection"
+                  autoComplete="off"
+                  value={collectionInput}
+                  onChange={(e) => setCollectionInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && loadDiscogsCollection()}
+                />
+                <button className="btn btn-primary" disabled={busy === 'album'} onClick={loadDiscogsCollection}>
+                  {busy === 'album' ? '⏳ Inlezen...' : '📚 Lees collectie'}
+                </button>
+              </div>
             </section>
           </div>
         )}
@@ -433,6 +564,19 @@ export default function App() {
 
         {channels && <ChannelPicker channels={channels} onPick={pickChannel} />}
         {albums && <AlbumPicker albums={albums} onPick={pickAlbum} />}
+        {albums && collectionUser && (
+          <section className="input-section">
+            <label>
+              Collectie van {collectionUser} is geladen. Je kunt nog steeds handmatig een album kiezen,
+              of alles in één keer laten downloaden.
+            </label>
+            <div className="actions">
+              <button className="btn btn-success" disabled={busy === 'album'} onClick={downloadWholeCollection}>
+                {busy === 'album' ? '⏳ Collectie verwerken...' : '⬇ Download hele collectie'}
+              </button>
+            </div>
+          </section>
+        )}
 
         {results.length > 0 && (
           <ResultsSection

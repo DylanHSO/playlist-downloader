@@ -38,6 +38,21 @@ export function searchAlbums(query: string): Promise<{ albums: AlbumHit[] }> {
   return postJson('/api/album-search', { query });
 }
 
+export function discogsCollection(
+  userInput: string,
+  page = 1,
+  perPage = 100
+): Promise<{
+  username: string;
+  page: number;
+  perPage: number;
+  totalPages: number;
+  totalItems: number;
+  albums: AlbumHit[];
+}> {
+  return postJson('/api/discogs-collection', { userInput, page, perPage });
+}
+
 export function albumTracks(
   albumId: string | number,
   releaseType: 'master' | 'release' = 'master'

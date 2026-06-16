@@ -64,6 +64,19 @@ function discogsError(r: globalThis.Response): Error {
   return new Error(`Discogs gaf HTTP ${r.status}`);
 }
 
+function parseDiscogsUsername(input: string): string {
+  const raw = input.trim();
+  if (!raw) return '';
+
+  try {
+    const url = new URL(raw);
+    const match = url.pathname.match(/^\/user\/([^/]+)/i);
+    return match?.[1] ? decodeURIComponent(match[1]) : '';
+  } catch {
+    return raw.replace(/^@/, '');
+  }
+}
+
 // ── Pure helpers (geëxporteerd voor de unit-tests) ────────────────────────
 
 export interface VideoEntry {
@@ -311,6 +324,32 @@ interface Job {
   filename: string | null;
 }
 
+interface YtDlpErrorShape {
+  shortMessage?: string;
+  message?: string;
+  stderr?: string;
+  stdout?: string;
+}
+
+function ytDlpErrorText(err: unknown): string {
+  const e = err as YtDlpErrorShape;
+  const raw = [e.stderr, e.shortMessage, e.message, e.stdout].filter(Boolean).join('\n');
+  if (/Sign in to confirm you(?:'|’)re not a bot/i.test(raw)) {
+    return 'YouTube blokkeert deze downloads (bot-check). Log in op YouTube in Chrome/Edge en probeer opnieuw.';
+  }
+  if (/HTTP Error 429|Too Many Requests/i.test(raw)) {
+    return 'YouTube limiet bereikt (HTTP 429). Wacht even en probeer daarna opnieuw.';
+  }
+  const match = raw.match(/ERROR:\s*([^\n]+)/i);
+  if (match?.[1]) return match[1].trim();
+  return e.shortMessage || e.message || 'Onbekende fout';
+}
+
+function shouldRetryWithCookies(err: unknown): boolean {
+  const text = ytDlpErrorText(err);
+  return /bot-check|not a bot|HTTP 429|Too Many Requests|cookies/i.test(text);
+}
+
 // In-memory job tracking
 const jobs = new Map<string, Job>();
 // ZIP-bundels (OUT1)
@@ -326,25 +365,41 @@ async function runDownload(videoId: string, jobId: string, bitrate = '192K', met
   fs.mkdirSync(jobDir, { recursive: true });
 
   try {
-    const proc = ytDlp(url, {
-      extractAudio: true,
-      audioFormat: 'mp3',
-      audioQuality: bitrate,
-      ffmpegLocation: ffmpegPath,
-      output: path.join(jobDir, '%(title)s.%(ext)s'),
-      noPlaylist: true,
-      newline: true,
-    });
-
     const parseProgress = (chunk: Buffer) => {
       const match = chunk.toString().match(/(\d+\.?\d*)%/);
       if (match) job.progress = parseFloat(match[1]);
     };
 
-    proc.stdout?.on('data', parseProgress);
-    proc.stderr?.on('data', parseProgress);
+    let lastError: unknown = null;
+    const cookieSources: Array<'chrome' | 'edge' | null> = [null, 'chrome', 'edge'];
 
-    await proc;
+    for (const cookieSource of cookieSources) {
+      try {
+        const proc = ytDlp(url, {
+          extractAudio: true,
+          audioFormat: 'mp3',
+          audioQuality: bitrate,
+          ffmpegLocation: ffmpegPath,
+          output: path.join(jobDir, '%(title)s.%(ext)s'),
+          noPlaylist: true,
+          newline: true,
+          jsRuntimes: 'node',
+          ...(cookieSource ? { cookiesFromBrowser: cookieSource } : {}),
+        });
+
+        proc.stdout?.on('data', parseProgress);
+        proc.stderr?.on('data', parseProgress);
+
+        await proc;
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
+        if (!shouldRetryWithCookies(err)) break;
+      }
+    }
+
+    if (lastError) throw lastError;
 
     const files = fs.readdirSync(jobDir);
     const mp3 = files.find((f) => f.endsWith('.mp3'));
@@ -373,9 +428,8 @@ async function runDownload(videoId: string, jobId: string, bitrate = '192K', met
     job.status = 'done';
     job.progress = 100;
   } catch (err) {
-    const e = err as { shortMessage?: string; message?: string };
     job.status = 'error';
-    job.error = e.shortMessage || e.message || 'Onbekende fout';
+    job.error = ytDlpErrorText(err);
     fs.rm(jobDir, { recursive: true, force: true }, () => {});
     console.error(`Download fout [${jobId}]:`, job.error);
   }
@@ -587,6 +641,103 @@ export function createApp() {
       res.json({ albums });
     } catch (err) {
       console.error('Discogs-zoek fout:', err);
+      res.status(500).json({ error: (err as Error).message || 'Onbekende fout' });
+    }
+  });
+
+  // Discogs — lees een volledige gebruikerscollectie (folder 0 = All) uit.
+  app.post('/api/discogs-collection', async (req: Request, res: Response) => {
+    const token = getDiscogsToken();
+    if (!token) {
+      return res.status(503).json({
+        error: 'Discogs is niet geconfigureerd. Voeg je token toe via ⚙️ Instellingen.',
+      });
+    }
+
+    const username = parseDiscogsUsername(String(req.body?.userInput || ''));
+    if (!username) {
+      return res.status(400).json({ error: 'Geef een Discogs-gebruikersnaam of collectie-link op' });
+    }
+
+    try {
+      const reqPage = Number(req.body?.page || 1);
+      const reqPerPage = Number(req.body?.perPage || 100);
+      const page = Number.isFinite(reqPage) && reqPage > 0 ? Math.floor(reqPage) : 1;
+      const perPage = Number.isFinite(reqPerPage) && reqPerPage > 0
+        ? Math.min(100, Math.floor(reqPerPage))
+        : 100;
+
+      const url = new URL(
+        `https://api.discogs.com/users/${encodeURIComponent(username)}/collection/folders/0/releases`
+      );
+      url.searchParams.set('per_page', String(perPage));
+      url.searchParams.set('page', String(page));
+      url.searchParams.set('token', token);
+
+      const r = await fetch(url, { headers: { 'User-Agent': DISCOGS_UA } });
+      if (!r.ok) throw discogsError(r);
+
+      const data: any = await r.json();
+      const albums: Array<{
+        id: number;
+        title: string;
+        year: number | null;
+        thumbnail: string | null;
+        format: string | null;
+        releaseType: 'release';
+      }> = [];
+      const seenReleaseIds = new Set<number>();
+
+      for (const entry of data?.releases || []) {
+        const info = entry?.basic_information;
+        const releaseId = Number(info?.id);
+        if (!releaseId || seenReleaseIds.has(releaseId)) continue;
+        seenReleaseIds.add(releaseId);
+
+        const artist = cleanDiscogsName(info?.artists?.[0]?.name);
+        const title = typeof info?.title === 'string' ? info.title : 'Onbekende release';
+        const year = typeof info?.year === 'number' && isFinite(info.year) && info.year > 0 ? info.year : null;
+        const format = Array.isArray(info?.formats)
+          ? info.formats
+              .map((f: any) => (typeof f?.name === 'string' ? f.name : ''))
+              .filter(Boolean)
+              .join(', ') || null
+          : null;
+
+        albums.push({
+          id: releaseId,
+          title: artist ? `${artist} - ${title}` : title,
+          year,
+          thumbnail:
+            typeof info?.cover_image === 'string'
+              ? info.cover_image
+              : typeof info?.thumb === 'string'
+                ? info.thumb
+                : null,
+          format,
+          releaseType: 'release',
+        });
+      }
+
+      if (!albums.length) {
+        return res.status(404).json({ error: 'Geen releases gevonden in deze Discogs-collectie' });
+      }
+
+      const pages = Number(data?.pagination?.pages || 1);
+      const totalPages = Number.isFinite(pages) && pages > 0 ? pages : 1;
+      const items = Number(data?.pagination?.items || albums.length);
+      const totalItems = Number.isFinite(items) && items > 0 ? items : albums.length;
+
+      res.json({
+        username,
+        page,
+        perPage,
+        totalPages,
+        totalItems,
+        albums,
+      });
+    } catch (err) {
+      console.error('Discogs-collectie fout:', err);
       res.status(500).json({ error: (err as Error).message || 'Onbekende fout' });
     }
   });

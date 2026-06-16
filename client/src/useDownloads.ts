@@ -44,23 +44,55 @@ export function useDownloads(results: Result[]) {
 
   const reset = useCallback(() => setStates({}), []);
 
-  // Voert de downloadjob uit en pollt de voortgang. Retourneert de jobId of
-  // null bij een fout. Triggert zélf geen browser-download.
+  // Voert de downloadjob uit en pollt de voortgang. Bij een fout probeert hij
+  // automatisch alternatieve kandidaten voor hetzelfde nummer (RB1).
+  // Retourneert de jobId of null bij een fout. Triggert zélf geen browser-download.
   const runJob = useCallback(
     async (index: number, bitrate: Bitrate): Promise<string | null> => {
       const r = results[index];
       if (!r?.found || !r.videoId) return null;
 
-      update(index, { status: 'downloading', progress: 0 });
-      try {
-        const { jobId } = await startDownload(r.videoId, bitrate, r.meta, r.title ?? undefined);
-        const done = await pollJob(jobId, (pct) => update(index, { progress: pct }));
-        return done;
-      } catch (err) {
-        update(index, { status: 'error', label: '✗ Fout' });
-        console.error('Download fout:', err);
-        return null;
+      const candidates = r.candidates?.length
+        ? r.candidates
+        : [
+            {
+              videoId: r.videoId,
+              title: r.title || 'Onbekende titel',
+              url: r.url || `https://www.youtube.com/watch?v=${r.videoId}`,
+              duration: r.duration ?? null,
+              thumbnail: r.thumbnail || `https://i.ytimg.com/vi/${r.videoId}/default.jpg`,
+              channel: r.channel || '',
+            },
+          ];
+
+      // Begin bij de huidige keuze, probeer daarna de rest.
+      const startAt =
+        typeof r.candidateIndex === 'number' && r.candidateIndex >= 0 && r.candidateIndex < candidates.length
+          ? r.candidateIndex
+          : 0;
+      const attempts = [...candidates.slice(startAt), ...candidates.slice(0, startAt)];
+
+      let lastError: Error | null = null;
+      for (let i = 0; i < attempts.length; i++) {
+        const c = attempts[i];
+        update(index, {
+          status: 'downloading',
+          progress: 0,
+          label: attempts.length > 1 ? `⏳ Poging ${i + 1}/${attempts.length}...` : undefined,
+        });
+        try {
+          const { jobId } = await startDownload(c.videoId, bitrate, r.meta, c.title ?? undefined);
+          const done = await pollJob(jobId, (pct) => update(index, { progress: pct }));
+          return done;
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error('Onbekende fout');
+          console.error('Download fout:', lastError);
+        }
       }
+
+      const msg = (lastError?.message || 'Onbekende fout').slice(0, 44);
+      update(index, { status: 'error', label: `✗ ${msg}` });
+      return null;
     },
     [results, update]
   );
